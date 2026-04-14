@@ -85,7 +85,8 @@ async function checkTwitch(client) {
 				// Stream is offline → remove messageId so it won't be edited again
 				if (chan.messageId) {
 					try {
-						await Channels.update({ messageId: null, streamId: null }, { where: { id: chan.id } });
+						return
+						//await Channels.update({ messageId: null, streamId: null }, { where: { id: chan.id } });
 					}
 					catch (err) {
 						console.error(writeLog(`Failed to clear offline messageId for ${chan.channelName}:`, err));
@@ -126,12 +127,14 @@ async function checkTwitch(client) {
 
 			// Send or edit Discord message
 			try {
-				if (chan.messageId) {
+				if (chan.messageId && chan.streamId === streamInfo.id) {
 					// Edit existing live message
 					const existingMessage = await discordChannel.messages.fetch(chan.messageId).catch(() => null);
-					if (existingMessage) await existingMessage.edit({ content, embeds: [sendEmbed] });
-				}
-				else {
+					if (existingMessage) {
+						await existingMessage.edit({ content, embeds: [sendEmbed] });
+						return;
+					}
+
 					// Send new live message
 					const message = await discordChannel.send({ content, embeds: [sendEmbed] });
 					// Update DB with new messageId
