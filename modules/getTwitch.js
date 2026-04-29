@@ -134,7 +134,7 @@ async function checkTwitch(client) {
 						await existingMessage.edit({ content, embeds: [sendEmbed] });
 						return;
 					}
-
+				} else {
 					// Send new live message
 					const message = await discordChannel.send({ content, embeds: [sendEmbed] });
 					// Update DB with new messageId
