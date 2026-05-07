@@ -1,8 +1,10 @@
-const { ActivityType } = require('discord.js');
-const auth = require('./updateAuthConfig.js');
+const { CronJob } = require('cron');
+const kick = require('./getKick.js');
 const twitch = require('./getTwitch.js');
 const config = require('../config.json');
-const { CronJob } = require('cron');
+const { ActivityType } = require('discord.js');
+const kickAuth = require('./updateKickAuthConfig.js');
+const twitchAuth = require('./updateTwitchAuthConfig.js');
 
 module.exports = (client) => {
 	let activityIndex = -1;
@@ -10,6 +12,10 @@ module.exports = (client) => {
 	return {
 		Twitch: new CronJob(config.twitchCron, async () => {
 			await twitch.checkTwitch(client);
+		}),
+
+		Kick: new CronJob(config.kickCron, async () => {
+			await kick.checkKick(client);
 		}),
 
 		Status: new CronJob(config.statusCron, () => {
@@ -36,7 +42,8 @@ module.exports = (client) => {
 		}),
 
 		Auth: new CronJob(config.authCron, () => {
-			auth.updateAuthConfig();
+			twitchAuth.updateTwitchAuthConfig();
+			kickAuth.updateKickAuthConfig();	
 		}),
 	};
 };

@@ -4,15 +4,15 @@ const { writeLog } = require('../../../modules/writeLog.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('twitch')
-		.setDescription('Edit channel list for affiliates.')
+		.setName('stream')
+		.setDescription('Stream options.')
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('add')
-				.setDescription('Add a Twitch user.')
+				.setDescription('Add a channel.')
 				.addStringOption(option =>
 					option.setName('name')
-						.setDescription('Twitch username.')
+						.setDescription('Username.')
 						.setRequired(true),
 				)
 				.addStringOption(option =>
@@ -21,28 +21,36 @@ module.exports = {
 				)
 				.addBooleanOption(option =>
 					option.setName('self')
-						.setDescription('Set true if this is your own stream.'),
+						.setDescription('Default false. Set true if this is your own stream.'),
+				)
+				.addBooleanOption(option =>
+					option.setName('twitch')
+						.setDescription('Default true. Set to false if you do not want Twitch notifications.'),
+				)
+				.addBooleanOption(option =>
+					option.setName('kick')
+						.setDescription('Default true. Set to false if you do not want Kick notifications.'),
 				),
 		)
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('delete')
-				.setDescription('Delete a Twitch user from the database.')
+				.setDescription('Delete a channel from the list.')
 				.addStringOption(option =>
 					option.setName('name')
-						.setDescription('Twitch username to delete.')
+						.setDescription('Username to delete.')
 						.setRequired(true),
 				),
 		)
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('list')
-				.setDescription('List all Twitch channels for this server.'),
+				.setDescription('List all channels for this server.'),
 		)
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('setup')
-				.setDescription('Configure Twitch notification settings.')
+				.setDescription('Configure channel and role settings.')
 				.addChannelOption(option =>
 					option.setName('self-channel')
 						.setDescription('Discord channel for notifications when a specific channel goes live. Typically your own.')
@@ -99,10 +107,12 @@ module.exports = {
 				await interaction.reply({ content: 'Failed to update server settings.', flags: MessageFlags.Ephemeral });
 			}
 		}
-		if (subcommand === 'add') {
-			const channelName = interaction.options.getString('name');
+		else if (subcommand === 'add') {
+			const twitchNotif = interaction.options.getBoolean('twitch') ?? true;
 			const discordUrl = interaction.options.getString('discord') || null;
+			const kickNotif = interaction.options.getBoolean('kick') ?? true;
 			const isSelf = interaction.options.getBoolean('self') ?? false;
+			const channelName = interaction.options.getString('name');
 
 			try {
 				await Servers.upsert({ guildId });
@@ -111,6 +121,8 @@ module.exports = {
 					discordUrl,
 					isSelf,
 					guildId,
+					twitchNotif,
+					kickNotif
 				});
 
 				await interaction.reply({
@@ -171,7 +183,7 @@ module.exports = {
 				}
 
 				const list = channels.map(chan =>
-					`• **${chan.channelName}** ${chan.isSelf ? '(self)' : '(affiliate)'}`,
+					`• **${chan.channelName}** ${chan.isSelf ? '(self)' : '(affiliate)'} ${chan.twitchNotif ? '(Twitch notify)' : null} ${chan.kickNotif ? '(Kick notify)' : null}`,
 				);
 
 				await interaction.reply({

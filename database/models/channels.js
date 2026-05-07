@@ -4,8 +4,12 @@
  * channelName VARCHAR(255) NOT NULL,
  * discordUrl VARCHAR(255),
  * isSelf BOOLEAN NOT NULL DEFAULT false,
- * streamId VARCHAR(255),
- * messageId VARCHAR(255) UNIQUE,
+ * twitchStreamId VARCHAR(255),
+ * twitchMessageId VARCHAR(255) UNIQUE,
+ * twitchNotif BOOLEAN NOT NULL DEFAULT true
+ * kickMessageId VARCHAR(255) UNIQUE,
+ * kickIsLive BOOLEAN NOT NULL DEFAULT false,
+ * kickNotif BOOLEAN NOT NULL DEFAULT true
  * guildId VARCHAR(255) NOT NULL,
  * UNIQUE (channelName, guildId)
  * );
@@ -29,16 +33,36 @@ module.exports = (sequelize, DataTypes) => {
 		isSelf: {
 			type: DataTypes.BOOLEAN,
 			allowNull: false,
-			default: false,
+			defaultValue: false,
 		},
-		streamId: {
+		twitchStreamId: {
 			type: DataTypes.STRING,
 			allowNull: true,
 		},
-		messageId: {
+		twitchMessageId: {
 			type: DataTypes.STRING,
 			allowNull: true,
 			unique: true, // Ensure globally unique
+		},
+		twitchNotif: {
+			type: DataTypes.BOOLEAN,
+			allowNull: false,
+			defaultValue: true,
+		},
+		kickMessageId: {
+			type: DataTypes.STRING,
+			allowNull: true,
+			unique: true, // Ensure globally unique
+		},
+		kickIsLive: {
+			type: DataTypes.BOOLEAN,
+			allowNull: false,
+			defaultValue: false,
+		},
+		kickNotif: {
+			type: DataTypes.BOOLEAN,
+			allowNull: false,
+			defaultValue: true,
 		},
 		guildId: {
 			type: DataTypes.STRING,

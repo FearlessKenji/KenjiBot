@@ -7,7 +7,7 @@ async function dbInit() {
 	const dbPath = path.resolve('database/database.sqlite');
 	const exists = fs.existsSync(dbPath);
 
-	await sequelize.sync();
+	await sequelize.sync(); //alter: true for attempted less destructive reforming of database. force: true for destructive complete remaking of database.
 
 	console.log(
 		writeLog(

@@ -44,6 +44,8 @@ const REQUIRED_STRICT = [
 	'token',
 	'twitchClientId',
 	'twitchSecret',
+	'kickClientId',
+	'kickSecret',
 	'botOwner',
 	'clientId',
 	'guildId',

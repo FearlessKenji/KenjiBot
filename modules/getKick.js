@@ -1,16 +1,17 @@
 const { Servers, Channels } = require('../database/dbObjects.js');
+const channelData = require('./kickChannelData.js');
+const userData = require('./getKickUserData.js');
 const { EmbedBuilder } = require('discord.js');
 const { writeLog } = require('./writeLog.js');
-const channelData = require('./twitchChannelData.js');
 const fs = require('node:fs');
 
 /**
- * Fetch Twitch stream info for multiple channels in parallel.
- * Only fetches once per unique Twitch username.
+ * Fetch Kick stream info for multiple channels in parallel.
+ * Only fetches once per unique Kick username.
  */
-async function getTwitchDataBatch(channelNames, clientID, authKey) {
+async function getKickDataBatch(channelNames, clientID, authKey) {
 	const promises = channelNames.map(async (name) => {
-		const url = `https://api.twitch.tv/helix/streams?user_login=${name}`;
+		const url = `https://api.kick.com/public/v1/channels?slug=${name}`;
 		const headers = { 'Client-ID': clientID, 'Authorization': `Bearer ${authKey}` };
 		try {
 			const res = await fetch(url, { headers });
@@ -23,7 +24,7 @@ async function getTwitchDataBatch(channelNames, clientID, authKey) {
 			return { name, data: data.data[0] ?? null }; // null if offline
 		}
 		catch (err) {
-			console.error(writeLog(`Failed to fetch Twitch data for ${name}:`, err));
+			console.error(writeLog(`Failed to fetch Kick data for ${name}:`, err));
 			return { name, data: null };
 		}
 	});
@@ -32,12 +33,12 @@ async function getTwitchDataBatch(channelNames, clientID, authKey) {
 }
 
 /**
- * Main Twitch check function.
+ * Main Kick check function.
  * - Loops through all servers
- * - Fetches Twitch info per channel globally
+ * - Fetches Kick info per channel globally
  * - Updates or sends Discord messages accordingly
  */
-async function checkTwitch(client) {
+async function checkKick(client) {
 	let config;
 	try {
 		config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'));
@@ -61,8 +62,8 @@ async function checkTwitch(client) {
 			.filter(name => name && /^[a-z0-9_]+$/.test(name));
 
 
-		// Batch fetch Twitch data globally per channel name
-		const streamsData = await getTwitchDataBatch(channelNames, config.twitchClientId, config.twitchAuthToken);
+		// Batch fetch Kick data globally per channel name
+		const streamsData = await getKickDataBatch(channelNames, config.kickClientId, config.kickAuthToken);
 
 		// Process each channel in the server
 		const channelPromises = channels.map(async (chan) => {
@@ -72,7 +73,7 @@ async function checkTwitch(client) {
 			const discordChannelId = chan.isSelf ? server.selfChannelId : server.affiliateChannelId;
 			const discordChannel = client.channels.cache.get(discordChannelId);
 			if (!discordChannel) {
-				console.error(writeLog(`Twitch updates cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
+				console.error(writeLog(`Kick updates cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
 				return;
 			}
 
@@ -81,59 +82,61 @@ async function checkTwitch(client) {
 				? server.selfRoleId ? `<@&${server.selfRoleId}> ` : ''
 				: server.affiliateRoleId ? `<@&${server.affiliateRoleId}> ` : '';
 
-			if (!streamInfo || !chan.twitchNotif) return;
+			if (!streamInfo || !chan.kickNotif) {
+				await Channels.update({ kickIsLive: false }, { where: { id: chan.id } });
+				return; // nothing else to do for offline stream
+			}
 
-			const twitchChannel = await channelData.getData(chan.channelName, config.twitchClientId, config.twitchAuthToken);
-			if (!twitchChannel) return;
-
-			const startTime = new Date(streamInfo.started_at).toLocaleString();
+			const userID = streamInfo.broadcaster_user_id
+			const kickUser = await userData.getData(userID, chan.channelName, config.kickClientId, config.kickAuthToken);
+			const startTime = new Date(streamInfo.stream.start_time).toLocaleString();
 			const editTime = new Date().toLocaleString();
 
 			// Build embed fields
 			const fields = [
-				{ name: 'Playing', value: twitchChannel.game_name, inline: true },
-				{ name: 'Viewers', value: streamInfo.viewer_count.toString(), inline: true },
-				{ name: 'Twitch', value: `[Watch stream](https://www.twitch.tv/${twitchChannel.broadcaster_login})` },
+				{ name: 'Playing', value: streamInfo.category.name, inline: true },
+				{ name: 'Viewers', value: streamInfo.stream.viewer_count.toString(), inline: true },
+				{ name: 'Kick', value: `[Watch stream](https://www.kick.com/${streamInfo.slug})` },
 			];
 			if (chan.discordUrl) fields.push({ name: 'Discord Server', value: `[Join here](${chan.discordUrl})`, inline: true });
 
 			const sendEmbed = new EmbedBuilder()
-				.setTitle(`${twitchChannel.display_name} is now live`)
-				.setDescription(twitchChannel.title)
-				.setURL(`https://www.twitch.tv/${twitchChannel.broadcaster_login}`)
-				.setColor(0x9146FF)
+				.setTitle(`${kickUser.name} is now live`)
+				.setDescription(streamInfo.stream_title)
+				.setURL(`https://www.kick.com/${streamInfo.slug}`)
+				.setColor(0x00E701)
 				.setFields(fields)
 				.setFooter({ text: `Started ${startTime}. Last edited ${editTime}.` })
-				.setThumbnail(twitchChannel.thumbnail_url)
-				.setImage(`https://static-cdn.jtvnw.net/previews-ttv/live_user_${twitchChannel.broadcaster_login}-640x360.jpg?cacheBypass=${Math.random()}`);
+				.setThumbnail(kickUser.profile_picture)
+				.setImage(`${streamInfo.stream.thumbnail}?cacheBypass=${Math.random()}`);
 
 			const content = chan.isSelf
-				? `${roleMention}I just went live on Twitch! I'm streaming ${twitchChannel.game_name}!`
-				: `${roleMention}An affiliate has gone live on Twitch! They're streaming ${twitchChannel.game_name}!`;
+				? `${roleMention}I just went live on Kick! I'm streaming ${streamInfo.category.name}!`
+				: `${roleMention}An affiliate has gone live on Kick! They're streaming ${streamInfo.category.name}!`;
 
 			// Send or edit Discord message
 			try {
-				if (chan.twitchMessageId && chan.twitchStreamId === streamInfo.id) {
+				if (chan.kickMessageId && chan.kickIsLive == streamInfo.stream.is_live ) {
 					// Edit existing live message
-					const existingMessage = await discordChannel.messages.fetch(chan.twitchMessageId).catch(() => null);
+					const existingMessage = await discordChannel.messages.fetch(chan.kickMessageId).catch(() => null);
 					if (existingMessage) {
 						await existingMessage.edit({ content, embeds: [sendEmbed] });
 						return;
 					} else {
-						// Send new live message
+						// Send new live message, message was deleted.
 						const message = await discordChannel.send({ content, embeds: [sendEmbed] });
 						// Update DB with new messageId
-						await Channels.update({ twitchMessageId: message.id, twitchStreamId: streamInfo.id }, { where: { id: chan.id } });
+						await Channels.update({ kickMessageId: message.id, kickIsLive: streamInfo.stream.is_live }, { where: { id: chan.id } });
 					}
 				} else {
 					// Send new live message
 					const message = await discordChannel.send({ content, embeds: [sendEmbed] });
 					// Update DB with new messageId
-					await Channels.update({ twitchMessageId: message.id, twitchStreamId: streamInfo.id }, { where: { id: chan.id } });
+					await Channels.update({ kickMessageId: message.id, kickIsLive: streamInfo.stream.is_live }, { where: { id: chan.id } });
 				}
 			}
 			catch (err) {
-				console.error(writeLog(`Failed to send/edit Twitch message for ${chan.channelName}:`, err));
+				console.error(writeLog(`Failed to send/edit kick message for ${chan.channelName}:`, err));
 			}
 		});
 
@@ -142,4 +145,4 @@ async function checkTwitch(client) {
 	}
 }
 
-module.exports = { checkTwitch };
+module.exports = { checkKick };
