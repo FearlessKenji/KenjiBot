@@ -1,10 +1,10 @@
 /*
  * equivalent to: CREATE TABLE servers (
  * guildId VARCHAR(255) PRIMARY KEY,
- * selfChannelId VARCHAR(255) UNIQUE,
- * affiliateChannelId VARCHAR(255) UNIQUE,
- * selfRoleId VARCHAR(255) UNIQUE,
- * affiliateRoleId VARCHAR(255) UNIQUE
+ * selfChannelId VARCHAR(255),
+ * affiliateChannelId VARCHAR(255),
+ * selfRoleId VARCHAR(255),
+ * affiliateRoleId VARCHAR(255) 
  * );
  */
 module.exports = (sequelize, DataTypes) => {
@@ -13,24 +13,28 @@ module.exports = (sequelize, DataTypes) => {
 			type: DataTypes.STRING,
 			primaryKey: true,
 		},
-		selfChannelId: {
+		selfTwitchChannelId: {
 			type: DataTypes.STRING,
-			unique: true,
+			allowNull: true,
+		},
+		selfKickChannelId: {
+			type: DataTypes.STRING,
 			allowNull: true,
 		},
 		affiliateChannelId: {
 			type: DataTypes.STRING,
-			unique: true,
 			allowNull: true,
 		},
-		selfRoleId: {
+		selfTwitchRoleId: {
 			type: DataTypes.STRING,
-			unique: true,
+			allowNull: true,
+		},
+		selfKickRoleId: {
+			type: DataTypes.STRING,
 			allowNull: true,
 		},
 		affiliateRoleId: {
 			type: DataTypes.STRING,
-			unique: true,
 			allowNull: true,
 		},
 	},

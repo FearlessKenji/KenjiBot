@@ -9,35 +9,48 @@ const fs = require('node:fs');
  * Only fetches once per unique Twitch username.
  */
 async function getTwitchDataBatch(channelNames, clientID, authKey) {
-	const promises = channelNames.map(async (name) => {
-		const url = `https://api.twitch.tv/helix/streams?user_login=${name}`;
-		const headers = { 'Client-ID': clientID, 'Authorization': `Bearer ${authKey}` };
-		try {
-			const res = await fetch(url, { headers });
-			if (!res.ok) {
-				const text = await res.text();
-				throw new Error(`HTTP ${res.status} - ${text}`);
+	const uniqueNames = [...new Set(channelNames)];
+	const results = await Promise.all(
+		uniqueNames.map(async (name) => {
+			try {
+				const res = await fetch(
+					`https://api.twitch.tv/helix/streams?user_login=${name}`,
+					{
+						headers: {
+							'Client-ID': clientID,
+							'Authorization': `Bearer ${authKey}`
+						}
+					});
+
+				if (!res.ok) {
+					const text = await res.text();
+					throw new Error(`HTTP ${res.status} - ${text}`);
+				}
+
+				const data = await res.json();
+				return { name, data: data.data[0] ?? null }; // null if offline
 			}
+			catch (err) {
+				console.error(writeLog(`Failed to fetch Twitch data for ${name}:`, err));
+				return { name, data: null };
+			}
+		})
+	);
 
-			const data = await res.json();
-			return { name, data: data.data[0] ?? null }; // null if offline
-		}
-		catch (err) {
-			console.error(writeLog(`Failed to fetch Twitch data for ${name}:`, err));
-			return { name, data: null };
-		}
-	});
-
-	return Promise.all(promises);
+	// Convert array of tuples into lookup object for O(1) access
+	return Object.fromEntries(results.map(r => [r.name, r.data]));
 }
 
 /**
- * Main Twitch check function.
- * - Loops through all servers
- * - Fetches Twitch info per channel globally
- * - Updates or sends Discord messages accordingly
+ * Main Twitch monitoring loop
+ * - Loads servers + channels
+ * - Normalizes channel names once
+ * - Groups channels by guild for fast lookup
+ * - Fetches Twitch data once globally
+ * - Processes Discord updates per server
  */
 async function checkTwitch(client) {
+	// Load config
 	let config;
 	try {
 		config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'));
@@ -47,30 +60,53 @@ async function checkTwitch(client) {
 		return;
 	}
 
-	// Fetch all servers from DB
-	const servers = await Servers.findAll({ raw: true });
+	// Fetch all db data
+	const [servers, channels] = await Promise.all([
+		Servers.findAll({ raw: true }),
+		Channels.findAll({ raw: true })
+	]);
+
+	// Remove invalid or malformed channel names
+	const validChannels = channels.filter(
+		c => c.channelName && /^[a-z0-9_]+$/.test(c.channelName)
+	);
+
+	// Group channels by guildId for fast lookup (removes per-server filtering)
+	const channelsByGuild = new Map();
+
+	for (const chan of validChannels) {
+		if (!channelsByGuild.has(chan.guildId)) {
+			channelsByGuild.set(chan.guildId, []);
+		}
+
+		channelsByGuild.get(chan.guildId).push(chan);
+	}
+
+	// Build list of all usernames for Twitch batch request
+	const channelNames = validChannels.map(c => c.channelName);
+	const streamsData = await getTwitchDataBatch(channelNames, config.twitchClientId, config.twitchAuthToken);
 
 	for (const server of servers) {
 		const guild = client.guilds.cache.get(server.guildId);
 		// console.log(writeLog(`Checking channels for ${guild?.name ?? 'Unknown guild'} (ID: ${server.guildId})`));
 
-		// Fetch all channels for this server
-		const channels = await Channels.findAll({ where: { guildId: server.guildId }, raw: true });
-		const channelNames = channels
-			.map(c => c.channelName?.toLowerCase().trim())
-			.filter(name => name && /^[a-z0-9_]+$/.test(name));
-
-
-		// Batch fetch Twitch data globally per channel name
-		const streamsData = await getTwitchDataBatch(channelNames, config.twitchClientId, config.twitchAuthToken);
+		// O(1) lookup instead of filtering entire dataset per server
+		const serverChannels = channelsByGuild.get(server.guildId) || [];
 
 		// Process each channel in the server
-		const channelPromises = channels.map(async (chan) => {
-			const streamInfo = streamsData.find(s => s.name === chan.channelName)?.data;
+		const channelPromises = serverChannels.map(async (chan) => {
+			const streamInfo = streamsData[chan.channelName];
+
+			// Skip if offline or notifications disabled
+			if (!streamInfo || !chan.twitchNotif) return;
 
 			// Determine which Discord channel to post in
-			const discordChannelId = chan.isSelf ? server.selfChannelId : server.affiliateChannelId;
+			const discordChannelId = chan.isSelf
+				? server.selfTwitchChannelId
+				: server.affiliateChannelId;
+
 			const discordChannel = client.channels.cache.get(discordChannelId);
+
 			if (!discordChannel) {
 				console.error(writeLog(`Twitch updates cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
 				return;
@@ -78,14 +114,19 @@ async function checkTwitch(client) {
 
 			// Mention the appropriate role if available
 			const roleMention = chan.isSelf
-				? server.selfRoleId ? `<@&${server.selfRoleId}> ` : ''
-				: server.affiliateRoleId ? `<@&${server.affiliateRoleId}> ` : '';
+				? server.selfTwitchRoleId
+					? `<@&${server.selfTwitchRoleId}> `
+					: ''
+				: server.affiliateRoleId
+					? `<@&${server.affiliateRoleId}> `
+					: '';
 
-			if (!streamInfo || !chan.twitchNotif) return;
+			const twitchChannel = await channelData.getData(
+				chan.channelName,
+				config.twitchClientId,
+				config.twitchAuthToken);
 
-			const twitchChannel = await channelData.getData(chan.channelName, config.twitchClientId, config.twitchAuthToken);
 			if (!twitchChannel) return;
-
 			const startTime = new Date(streamInfo.started_at).toLocaleString();
 			const editTime = new Date().toLocaleString();
 
@@ -95,7 +136,8 @@ async function checkTwitch(client) {
 				{ name: 'Viewers', value: streamInfo.viewer_count.toString(), inline: true },
 				{ name: 'Twitch', value: `[Watch stream](https://www.twitch.tv/${twitchChannel.broadcaster_login})` },
 			];
-			if (chan.discordUrl) fields.push({ name: 'Discord Server', value: `[Join here](${chan.discordUrl})`, inline: true });
+
+			if (chan.discordUrl) fields.push({ name: 'Discord Server', value: `[Join here](${chan.discordUrl})` });
 
 			const sendEmbed = new EmbedBuilder()
 				.setTitle(`${twitchChannel.display_name} is now live`)
@@ -113,25 +155,23 @@ async function checkTwitch(client) {
 
 			// Send or edit Discord message
 			try {
-				if (chan.twitchMessageId && chan.twitchStreamId === streamInfo.id) {
+				let existingMessage = null
+				if (chan.twitchMessageId) {
 					// Edit existing live message
-					const existingMessage = await discordChannel.messages.fetch(chan.twitchMessageId).catch(() => null);
-					if (existingMessage) {
-						await existingMessage.edit({ content, embeds: [sendEmbed] });
-						return;
-					} else {
-						// Send new live message
-						const message = await discordChannel.send({ content, embeds: [sendEmbed] });
-						// Update DB with new messageId
-						await Channels.update({ twitchMessageId: message.id, twitchStreamId: streamInfo.id }, { where: { id: chan.id } });
-					}
-				} else {
-					// Send new live message
-					const message = await discordChannel.send({ content, embeds: [sendEmbed] });
-					// Update DB with new messageId
-					await Channels.update({ twitchMessageId: message.id, twitchStreamId: streamInfo.id }, { where: { id: chan.id } });
+					existingMessage =
+						discordChannel.messages.cache.get(chan.twitchMessageId) ||
+						await discordChannel.messages.fetch(chan.twitchMessageId).catch(() => null);
 				}
+				if (existingMessage && chan.twitchStreamId === streamInfo.id) {
+					await existingMessage.edit({ content, embeds: [sendEmbed] });
+					return;
+				}
+				// Send new live message
+				const message = await discordChannel.send({ content, embeds: [sendEmbed] });
+				// Update DB with new messageId
+				await Channels.update({ twitchMessageId: message.id, twitchStreamId: streamInfo.id }, { where: { id: chan.id } });
 			}
+
 			catch (err) {
 				console.error(writeLog(`Failed to send/edit Twitch message for ${chan.channelName}:`, err));
 			}

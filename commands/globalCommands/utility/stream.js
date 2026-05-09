@@ -9,7 +9,7 @@ module.exports = {
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('add')
-				.setDescription('Add a channel.')
+				.setDescription('Add or edit a channel.')
 				.addStringOption(option =>
 					option.setName('name')
 						.setDescription('Username.')
@@ -17,19 +17,19 @@ module.exports = {
 				)
 				.addStringOption(option =>
 					option.setName('discord')
-						.setDescription('Discord invite URL for the channel.'),
+						.setDescription('Optional. Discord invite URL for the channel. Shows in embed.'),
 				)
 				.addBooleanOption(option =>
 					option.setName('self')
-						.setDescription('Default false. Set true if this is your own stream.'),
+						.setDescription('Optional. Default false. Set true if this is your own stream.'),
 				)
 				.addBooleanOption(option =>
 					option.setName('twitch')
-						.setDescription('Default true. Set to false if you do not want Twitch notifications.'),
+						.setDescription('Optional. Default true. Set to false if you do not want Twitch notifications.'),
 				)
 				.addBooleanOption(option =>
 					option.setName('kick')
-						.setDescription('Default true. Set to false if you do not want Kick notifications.'),
+						.setDescription('Optional. Default true. Set to false if you do not want Kick notifications.'),
 				),
 		)
 		.addSubcommand(subcommand =>
@@ -45,40 +45,47 @@ module.exports = {
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('list')
-				.setDescription('List all channels for this server.'),
+				.setDescription('List all channels for this server and their configurations.'),
 		)
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('setup')
 				.setDescription('Configure channel and role settings.')
 				.addChannelOption(option =>
-					option.setName('self-channel')
-						.setDescription('Discord channel for notifications when a specific channel goes live. Typically your own.')
-						.setRequired(true),
+					option.setName('self-twitch-channel')
+						.setDescription('Discord channel for Twitch notifications when a specific channel goes live. Typically your own.')
+				)
+				.addRoleOption(option =>
+					option.setName('self-twitch-role')
+						.setDescription('Optional notification role for when a specific channel goes live on Twitch. Typically your own.')
+				)
+				.addChannelOption(option =>
+					option.setName('self-kick-channel')
+						.setDescription('Discord channel for Kick notifications when a specific channel goes live. Typically your own.')
+				)
+				.addRoleOption(option =>
+					option.setName('self-kick-role')
+						.setDescription('Optional notification role for when a specific channel goes live on Kick. Typically your own.')
 				)
 				.addChannelOption(option =>
 					option.setName('affiliate-channel')
 						.setDescription('Discord channel for notifications when people you like go live.')
-						.setRequired(true),
-				)
-				.addRoleOption(option =>
-					option.setName('self-role')
-						.setDescription('Notification role for when a specific channel goes live. Typically your own.')
-						.setRequired(true),
 				)
 				.addRoleOption(option =>
 					option.setName('affiliate-role')
-						.setDescription('Notification role for when people you like go live.'),
+						.setDescription('Optional notification role for when people you like go live.'),
 				),
 		)
 		.setDefaultMemberPermissions(0) // Restrict to admins or bot owner,
 		.setContexts(InteractionContextType.Guild),
 
 	async execute(interaction) {
+		const selfTwitchChannelId = interaction.options.getChannel('self-twitch-channel')?.id || null;
 		const affiliateChannelId = interaction.options.getChannel('affiliate-channel')?.id || null;
+		const selfKickChannelId = interaction.options.getChannel('self-kick-channel')?.id || null;
+		const selfTwitchRoleId = interaction.options.getRole('self-twitch-role')?.id || null;
 		const affiliateRoleId = interaction.options.getRole('affiliate-role')?.id || null;
-		const selfChannelId = interaction.options.getChannel('self-channel')?.id || null;
-		const selfRoleId = interaction.options.getRole('self-role')?.id || null;
+		const selfKickRoleId = interaction.options.getRole('self-kick-role')?.id || null;
 		const subcommand = interaction.options.getSubcommand();
 		const guildId = interaction.guild.id;
 
@@ -86,19 +93,23 @@ module.exports = {
 			try {
 				await Servers.upsert({
 					guildId,
-					selfChannelId,
+					selfTwitchChannelId,
 					affiliateChannelId,
-					selfRoleId,
+					selfKickChannelId,
+					selfTwitchRoleId,
 					affiliateRoleId,
+					selfKickRoleId,
 				});
 				await interaction.reply({
 					content: `Server settings updated accordingly:
 ### **When you go live:**
--Role: <@&${selfRoleId}>
--Channel: <#${selfChannelId}>
+-Twitch Role: ${selfTwitchRoleId ? `<@&${selfTwitchRoleId}>` : 'Not Set'}
+-Twitch Channel: ${selfTwitchChannelId ? `<#${selfTwitchChannelId}>` : 'Not Set'}
+-Kick Role: ${selfKickRoleId ? `<@&${selfKickRoleId}>` : 'Not Set'}
+-Kick Channel: ${selfKickChannelId ? `<#${selfKickChannelId}>` : 'Not Set'}
 ### When someone you know goes live:
--Role: <@&${affiliateRoleId}>
--Channel: <#${affiliateChannelId}>`,
+-Role: ${affiliateRoleId ? `<@&${affiliateRoleId}>` : 'Not Set'}
+-Channel: ${affiliateChannelId ? `<#${affiliateChannelId}>` : 'Not Set'}`,
 					flags: MessageFlags.Ephemeral,
 				});
 			}
@@ -112,7 +123,7 @@ module.exports = {
 			const discordUrl = interaction.options.getString('discord') || null;
 			const kickNotif = interaction.options.getBoolean('kick') ?? true;
 			const isSelf = interaction.options.getBoolean('self') ?? false;
-			const channelName = interaction.options.getString('name');
+			const channelName = interaction.options.getString('name').toLowerCase().trim();
 
 			try {
 				await Servers.upsert({ guildId });
@@ -131,7 +142,7 @@ module.exports = {
 				});
 			}
 			catch (error) {
-				console.error(writeLog(`Failed to add channel **${channelName}**:`, error));
+				console.error(writeLog(`Failed to add channel ${channelName}:`, error));
 				await interaction.reply({
 					content: `Failed to add **${channelName}**.`,
 					flags: MessageFlags.Ephemeral,
@@ -140,7 +151,7 @@ module.exports = {
 		}
 
 		else if (subcommand === 'delete') {
-			const channelName = interaction.options.getString('name');
+			const channelName = interaction.options.getString('name').toLowerCase().trim();
 
 			try {
 				const deleted = await Channels.destroy({
@@ -160,7 +171,7 @@ module.exports = {
 				});
 			}
 			catch (error) {
-				console.error(writeLog(`Failed to delete **${channelName}**:`, error));
+				console.error(writeLog(`Failed to delete ${channelName}:`, error));
 				await interaction.reply({
 					content: `Failed to delete **${channelName}**.`,
 					flags: MessageFlags.Ephemeral,
@@ -183,7 +194,7 @@ module.exports = {
 				}
 
 				const list = channels.map(chan =>
-					`• **${chan.channelName}** ${chan.isSelf ? '(self)' : '(affiliate)'} ${chan.twitchNotif ? '(Twitch notify)' : null} ${chan.kickNotif ? '(Kick notify)' : null}`,
+					`• **${chan.channelName}** ${chan.isSelf ? '(self)' : '(affiliate)'} ${chan.twitchNotif ? '(Twitch notify)' : ''} ${chan.kickNotif ? '(Kick notify)' : ''}`,
 				);
 
 				await interaction.reply({
