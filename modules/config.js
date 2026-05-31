@@ -53,6 +53,7 @@ const REQUIRED_STRICT = [
 // Must exist, defaults allowed
 const REQUIRED_WITH_DEFAULTS = [
 	`twitchCron`,
+	`kickCron`,
 	`statusCron`,
 	`authCron`,
 ];

@@ -6,6 +6,9 @@
     "sequelize": "^6.37.8",
     "sqlite3": "^6.0.1"
   },
+  "overrides": {
+    "uuid": "^11.1.0"
+  },
   "devDependencies": {
     "eslint": "^9.39.4"
   },
@@ -30,7 +33,7 @@
     "notify"
   ],
   "author": "FearlessKenji",
-  "license": "SEE LICENSE IN LICENSE.txt",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/FearlessKenji/KenjiB0t/issues"
   },

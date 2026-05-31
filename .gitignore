@@ -11,6 +11,7 @@ ecosystem.config.cjs
 
 # Local runtime config
 config.json
+auth/
 
 # Local databases
 *.sqlite

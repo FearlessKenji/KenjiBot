@@ -1,45 +1,81 @@
 const { Servers, Channels } = require(`../database/dbObjects.js`);
 const userData = require(`./getKickUserData.js`);
+const kickData = require(`./getKickDataBatch.js`);
+const kickVideos = require(`./getKickVideos.js`);
+const authTokens = require(`./authTokens.js`);
 const { EmbedBuilder } = require(`discord.js`);
 const { writeLog } = require(`./writeLog.js`);
 const fs = require(`node:fs`);
 
-/**
- * Fetch Kick stream info for multiple channels in parallel.
- * Only fetches once per unique Kick username.
- */
-async function getKickDataBatch(channelNames, clientID, authKey) {
-	const uniqueNames = [...new Set(channelNames)];
-	const results = await Promise.all(
-		uniqueNames.map(async (name) => {
-			try {
-				const res = await fetch(
-					`https://api.kick.com/public/v1/channels?slug=${name}`,
-					{
-						headers: {
-							'Client-ID': clientID,
-							'Authorization': `Bearer ${authKey}`,
-						},
-					},
-				);
+function buildOfflineEmbed(existingEmbed, vod) {
+	const embed = EmbedBuilder.from(existingEmbed);
 
-				if (!res.ok) {
-					const text = await res.text();
-					throw new Error(`HTTP ${res.status} - ${text}`);
-				}
+	// Keep the original live embed intact, but replace the Kick link with the VoD.
+	const fields = existingEmbed.fields.map(field => {
+		if (field.name === `Kick`) {
+			return {
+				name: `Kick`,
+				value: `[Watch VoD](${vod.url})`,
+				inline: field.inline,
+			};
+		}
 
-				const data = await res.json();
+		return field;
+	});
 
-				return { name, data: data.data?.[0] ?? null };
-			} catch (err) {
-				console.error(writeLog(`Failed to fetch Kick data for ${name}:`, err));
-				return { name, data: null };
-			}
-		}),
-	);
+	const title = existingEmbed.title.replace(`is now live`, `was live`);
+	const footerText = existingEmbed.footer.text.replace(`Last edited`, `Stream ended`);
 
-	// IMPORTANT: normalize into lookup object for O(1)
-	return Object.fromEntries(results.map(r => [r.name, r.data]));
+	embed
+		.setTitle(title)
+		.setURL(vod.url)
+		.setFields(fields)
+		.setFooter({ text: footerText });
+
+	if (vod.thumbnail) {
+		embed.setImage(vod.thumbnail);
+	}
+
+	return embed;
+}
+
+async function updateOfflineKickMessage(chan, server, guild, client) {
+	if (!chan.kickMessageId || !chan.kickIsLive || !chan.kickNotif) {
+		return;
+	}
+
+	const discordChannelId = chan.isSelf ?
+		server.selfKickChannelId :
+		server.affiliateChannelId;
+	const discordChannel = client.channels.cache.get(discordChannelId);
+
+	if (!discordChannel) {
+		console.error(writeLog(`Kick VOD update cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
+		return;
+	}
+
+	const vod = await kickVideos.getLatestVod(chan.channelName);
+
+	if (!vod?.url) {
+		return;
+	}
+
+	// If the VOD exists, edit the original live message once and mark Kick as offline.
+	const existingMessage =
+		discordChannel.messages.cache.get(chan.kickMessageId) ||
+		await discordChannel.messages.fetch(chan.kickMessageId).catch(() => null);
+
+	if (!existingMessage) {
+		await Channels.update({ kickIsLive: false }, { where: { id: chan.id } });
+		return;
+	}
+
+	const embed = buildOfflineEmbed(existingMessage.embeds[0], vod);
+	await existingMessage.edit({
+		content: `The Kick stream has ended.`,
+		embeds: [embed],
+	});
+	await Channels.update({ kickIsLive: false }, { where: { id: chan.id } });
 }
 
 /**
@@ -55,6 +91,7 @@ async function checkKick(client) {
 	let config;
 	try {
 		config = JSON.parse(fs.readFileSync(`./config.json`, `utf-8`));
+		config = { ...config, ...authTokens.getAuthTokens() };
 	} catch (err) {
 		console.error(writeLog(`Failed to read config.json:`, err));
 		return;
@@ -84,7 +121,7 @@ async function checkKick(client) {
 
 	// Build list of all usernames for Kick batch request
 	const channelNames = validChannels.map(c => c.channelName);
-	const streamsData = await getKickDataBatch(channelNames, config.kickClientId, config.kickAuthToken);
+	const streamsData = await kickData.getKickDataBatch(channelNames, config.kickClientId, config.kickAuthToken);
 
 	for (const server of servers) {
 		const guild = client.guilds.cache.get(server.guildId);
@@ -95,11 +132,23 @@ async function checkKick(client) {
 
 		// Process each channel in the server
 		const channelPromises = serverChannels.map(async (chan) => {
-			const streamInfo = streamsData[chan.channelName];
+			const streamRecord = streamsData[chan.channelName];
+			const streamInfo = streamRecord?.data;
+
+			if (!streamRecord || streamRecord.error) {
+				return;
+			}
 
 			// Skip if offline or notifications disabled
-			if ((!streamInfo?.stream?.is_live && chan.kickIsLive) || !chan.kickNotif) {
-				await Channels.update({ kickIsLive: streamInfo?.stream?.is_live }, { where: { id: chan.id } });
+			if (!chan.kickNotif) {
+				return;
+			}
+
+			if (!streamInfo?.stream?.is_live) {
+				if (chan.kickIsLive) {
+					await updateOfflineKickMessage(chan, server, guild, client);
+				}
+
 				return;
 			}
 
@@ -130,6 +179,10 @@ async function checkKick(client) {
 				chan.channelName,
 				config.kickClientId,
 				config.kickAuthToken);
+
+			if (!kickUser) {
+				return;
+			}
 
 			const startTime = new Date(streamInfo.stream.start_time).toLocaleString();
 			const editTime = new Date().toLocaleString();

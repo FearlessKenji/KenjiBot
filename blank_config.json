@@ -10,7 +10,5 @@
 	"twitchCron": "*/1 * * * *",
 	"kickCron": "*/1 * * * *",
 	"statusCron": "*/10 * * * *",
-	"authCron": "0 * * * *",
-	"twitchAuthToken": "",
-	"kickAuthToken": ""
+	"authCron": "0 * * * *"
 }

@@ -180,7 +180,7 @@ module.exports = {
 
 				if (!channels.length) {
 					return interaction.reply({
-						content: `No Twitch channels configured.`,
+						content: `No stream channels configured.`,
 						flags: MessageFlags.Ephemeral,
 					});
 				}
@@ -190,7 +190,7 @@ module.exports = {
 				);
 
 				await interaction.reply({
-					content: `**Twitch Channels:**\n${list.join(`\n`)}`,
+					content: `**Stream Channels:**\n${list.join(`\n`)}`,
 					flags: MessageFlags.Ephemeral,
 				});
 			} catch (error) {

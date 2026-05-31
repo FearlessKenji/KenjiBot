@@ -2,42 +2,94 @@ const { Servers, Channels } = require(`../database/dbObjects.js`);
 const { EmbedBuilder } = require(`discord.js`);
 const { writeLog } = require(`./writeLog.js`);
 const channelData = require(`./twitchChannelData.js`);
+const twitchData = require(`./getTwitchDataBatch.js`);
+const twitchVideos = require(`./getTwitchVideos.js`);
+const authTokens = require(`./authTokens.js`);
 const fs = require(`node:fs`);
 
-/**
- * Fetch Twitch stream info for multiple channels in parallel.
- * Only fetches once per unique Twitch username.
- */
-async function getTwitchDataBatch(channelNames, clientID, authKey) {
-	const uniqueNames = [...new Set(channelNames)];
-	const results = await Promise.all(
-		uniqueNames.map(async (name) => {
-			try {
-				const res = await fetch(
-					`https://api.twitch.tv/helix/streams?user_login=${name}`,
-					{
-						headers: {
-							'Client-ID': clientID,
-							'Authorization': `Bearer ${authKey}`,
-						},
-					});
+function buildOfflineEmbed(existingEmbed, vod) {
+	const embed = EmbedBuilder.from(existingEmbed);
 
-				if (!res.ok) {
-					const text = await res.text();
-					throw new Error(`HTTP ${res.status} - ${text}`);
-				}
+	// Keep the original live embed intact, but replace the Twitch link with the VoD.
+	const fields = existingEmbed.fields.map(field => {
+		if (field.name === `Twitch`) {
+			return {
+				name: `Twitch`,
+				value: `[Watch VoD](${vod.url})`,
+				inline: field.inline,
+			};
+		}
 
-				const data = await res.json();
-				return { name, data: data.data[0] ?? null }; // null if offline
-			} catch (err) {
-				console.error(writeLog(`Failed to fetch Twitch data for ${name}:`, err));
-				return { name, data: null };
-			}
-		}),
-	);
+		return field;
+	});
 
-	// Convert array of tuples into lookup object for O(1) access
-	return Object.fromEntries(results.map(r => [r.name, r.data]));
+	const title = existingEmbed.title.replace(`is now live`, `was live`);
+	const footerText = existingEmbed.footer.text.replace(`Last edited`, `Stream ended`);
+	const imageUrl = vod.thumbnail_url ? vod.thumbnail_url.replace(`%{width}`, `640`).replace(`%{height}`, `360`) : null;
+
+	embed
+		.setTitle(title)
+		.setURL(vod.url)
+		.setFields(fields)
+		.setFooter({ text: footerText });
+
+	if (imageUrl) {
+		embed.setImage(imageUrl);
+	}
+
+	return embed;
+}
+
+async function updateOfflineTwitchMessage(chan, server, guild, client, config) {
+	if (!chan.twitchMessageId || !chan.twitchStreamId || !chan.twitchNotif) {
+		return;
+	}
+
+	const discordChannelId = chan.isSelf ?
+		server.selfTwitchChannelId :
+		server.affiliateChannelId;
+	const discordChannel = client.channels.cache.get(discordChannelId);
+
+	if (!discordChannel) {
+		console.error(writeLog(`Twitch VOD update cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
+		return;
+	}
+
+	const twitchChannel = await channelData.getData(
+		chan.channelName,
+		config.twitchClientId,
+		config.twitchAuthToken);
+
+	if (!twitchChannel) {
+		return;
+	}
+
+	const vod = await twitchVideos.getVodForStream(
+		twitchChannel.id,
+		chan.twitchStreamId,
+		config.twitchClientId,
+		config.twitchAuthToken);
+
+	if (!vod?.url) {
+		return;
+	}
+
+	// If the VOD exists, edit the original live message once and clear the live stream marker.
+	const existingMessage =
+		discordChannel.messages.cache.get(chan.twitchMessageId) ||
+		await discordChannel.messages.fetch(chan.twitchMessageId).catch(() => null);
+
+	if (!existingMessage) {
+		await Channels.update({ twitchStreamId: null }, { where: { id: chan.id } });
+		return;
+	}
+
+	const embed = buildOfflineEmbed(existingMessage.embeds[0], vod);
+	await existingMessage.edit({
+		content: `The Twitch stream has ended.`,
+		embeds: [embed],
+	});
+	await Channels.update({ twitchStreamId: null }, { where: { id: chan.id } });
 }
 
 /**
@@ -53,6 +105,7 @@ async function checkTwitch(client) {
 	let config;
 	try {
 		config = JSON.parse(fs.readFileSync(`./config.json`, `utf-8`));
+		config = { ...config, ...authTokens.getAuthTokens() };
 	} catch (err) {
 		console.error(writeLog(`Failed to read config.json:`, err));
 		return;
@@ -82,7 +135,7 @@ async function checkTwitch(client) {
 
 	// Build list of all usernames for Twitch batch request
 	const channelNames = validChannels.map(c => c.channelName);
-	const streamsData = await getTwitchDataBatch(channelNames, config.twitchClientId, config.twitchAuthToken);
+	const streamsData = await twitchData.getTwitchDataBatch(channelNames, config.twitchClientId, config.twitchAuthToken);
 
 	for (const server of servers) {
 		const guild = client.guilds.cache.get(server.guildId);
@@ -93,10 +146,19 @@ async function checkTwitch(client) {
 
 		// Process each channel in the server
 		const channelPromises = serverChannels.map(async (chan) => {
-			const streamInfo = streamsData[chan.channelName];
+			const streamRecord = streamsData[chan.channelName];
+			const streamInfo = streamRecord?.data;
+
+			if (!streamRecord || streamRecord.error) {
+				return;
+			}
 
 			// Skip if offline or notifications disabled
 			if (!streamInfo || !chan.twitchNotif) {
+				if (!streamInfo) {
+					await updateOfflineTwitchMessage(chan, server, guild, client, config);
+				}
+
 				return;
 			}
 
