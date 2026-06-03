@@ -16,9 +16,37 @@ const textChannelTypes = [
 	ChannelType.GuildAnnouncement,
 ];
 
+const pendingSetups = new Map();
+
 async function getServerSettings(guildId) {
-	await Servers.upsert({ guildId });
-	return Servers.findOne({ where: { guildId }, raw: true });
+	const server = await Servers.findOne({
+		where: { guildId },
+		raw: true,
+	});
+
+	return server || {
+		guildId,
+		selfTwitchChannelId: null,
+		selfKickChannelId: null,
+		affiliateChannelId: null,
+		selfTwitchRoleId: null,
+		selfKickRoleId: null,
+		affiliateRoleId: null,
+	};
+}
+
+async function getPendingSetup(interaction, setupId) {
+	const pendingSetup = pendingSetups.get(setupId);
+
+	if (!pendingSetup || pendingSetup.userId !== interaction.user.id || pendingSetup.guildId !== interaction.guild.id) {
+		await interaction.update({
+			content: `This setup request is no longer available. Run \`/setup\` again.`,
+			components: [],
+		});
+		return;
+	}
+
+	return pendingSetup;
 }
 
 function formatChannel(id) {
@@ -30,7 +58,7 @@ function formatRole(id) {
 }
 
 function buildHomeContent(server) {
-	return `## Stream Notification Setup
+	return `## Notification Setup
 ### When you go live
 - Twitch Role: ${formatRole(server.selfTwitchRoleId)}
 - Twitch Channel: ${formatChannel(server.selfTwitchChannelId)}
@@ -42,78 +70,82 @@ function buildHomeContent(server) {
 - Channel: ${formatChannel(server.affiliateChannelId)}`;
 }
 
-function buildHomeComponents() {
+function buildHomeComponents(setupId) {
 	return [
 		new ActionRowBuilder().addComponents(
 			new ButtonBuilder()
-				.setCustomId(`setup:self`)
+				.setCustomId(`setup:${setupId}:self`)
 				.setLabel(`My Stream`)
 				.setStyle(ButtonStyle.Primary),
 			new ButtonBuilder()
-				.setCustomId(`setup:affiliate`)
+				.setCustomId(`setup:${setupId}:affiliate`)
 				.setLabel(`Affiliate Streams`)
 				.setStyle(ButtonStyle.Secondary),
+			new ButtonBuilder()
+				.setCustomId(`setup:${setupId}:submit`)
+				.setLabel(`Submit`)
+				.setStyle(ButtonStyle.Success),
 		),
 	];
 }
 
-function buildSelfComponents() {
+function buildSelfComponents(setupId) {
 	return [
 		new ActionRowBuilder().addComponents(
 			new ChannelSelectMenuBuilder()
-				.setCustomId(`setup:self:twitchChannel`)
+				.setCustomId(`setup:${setupId}:self:twitchChannel`)
 				.setPlaceholder(`Twitch notification channel`)
 				.setChannelTypes(textChannelTypes),
 		),
 		new ActionRowBuilder().addComponents(
 			new RoleSelectMenuBuilder()
-				.setCustomId(`setup:self:twitchRole`)
+				.setCustomId(`setup:${setupId}:self:twitchRole`)
 				.setPlaceholder(`Twitch notification role`),
 		),
 		new ActionRowBuilder().addComponents(
 			new ChannelSelectMenuBuilder()
-				.setCustomId(`setup:self:kickChannel`)
+				.setCustomId(`setup:${setupId}:self:kickChannel`)
 				.setPlaceholder(`Kick notification channel`)
 				.setChannelTypes(textChannelTypes),
 		),
 		new ActionRowBuilder().addComponents(
 			new RoleSelectMenuBuilder()
-				.setCustomId(`setup:self:kickRole`)
+				.setCustomId(`setup:${setupId}:self:kickRole`)
 				.setPlaceholder(`Kick notification role`),
 		),
 		new ActionRowBuilder().addComponents(
 			new ButtonBuilder()
-				.setCustomId(`setup:clearSelf`)
+				.setCustomId(`setup:${setupId}:clearSelf`)
 				.setLabel(`Clear My Stream Settings`)
 				.setStyle(ButtonStyle.Danger),
 			new ButtonBuilder()
-				.setCustomId(`setup:home`)
+				.setCustomId(`setup:${setupId}:home`)
 				.setLabel(`Back`)
 				.setStyle(ButtonStyle.Secondary),
 		),
 	];
 }
 
-function buildAffiliateComponents() {
+function buildAffiliateComponents(setupId) {
 	return [
 		new ActionRowBuilder().addComponents(
 			new ChannelSelectMenuBuilder()
-				.setCustomId(`setup:affiliate:channel`)
+				.setCustomId(`setup:${setupId}:affiliate:channel`)
 				.setPlaceholder(`Affiliate notification channel`)
 				.setChannelTypes(textChannelTypes),
 		),
 		new ActionRowBuilder().addComponents(
 			new RoleSelectMenuBuilder()
-				.setCustomId(`setup:affiliate:role`)
+				.setCustomId(`setup:${setupId}:affiliate:role`)
 				.setPlaceholder(`Affiliate notification role`),
 		),
 		new ActionRowBuilder().addComponents(
 			new ButtonBuilder()
-				.setCustomId(`setup:clearAffiliate`)
+				.setCustomId(`setup:${setupId}:clearAffiliate`)
 				.setLabel(`Clear Affiliate Settings`)
 				.setStyle(ButtonStyle.Danger),
 			new ButtonBuilder()
-				.setCustomId(`setup:home`)
+				.setCustomId(`setup:${setupId}:home`)
 				.setLabel(`Back`)
 				.setStyle(ButtonStyle.Secondary),
 		),
@@ -121,7 +153,7 @@ function buildAffiliateComponents() {
 }
 
 function buildSelfContent(server) {
-	return `## My Stream Settings
+	return `## My Notification Settings
 - Twitch Role: ${formatRole(server.selfTwitchRoleId)}
 - Twitch Channel: ${formatChannel(server.selfTwitchChannelId)}
 - Kick Role: ${formatRole(server.selfKickRoleId)}
@@ -129,9 +161,15 @@ function buildSelfContent(server) {
 }
 
 function buildAffiliateContent(server) {
-	return `## Affiliate Stream Settings
+	return `## Affiliate Notification Settings
 - Role: ${formatRole(server.affiliateRoleId)}
 - Channel: ${formatChannel(server.affiliateChannelId)}`;
+}
+
+function buildSubmissionContent(server) {
+	return `${buildHomeContent(server)}
+### Settings saved.
+- Please use the /stream command to add or remove streamers, including yourself.`;
 }
 
 async function updatePanel(interaction, content, components) {
@@ -141,50 +179,95 @@ async function updatePanel(interaction, content, components) {
 	});
 }
 
-async function showHome(interaction) {
-	const server = await getServerSettings(interaction.guild.id);
-	await updatePanel(interaction, buildHomeContent(server), buildHomeComponents());
+async function showPage(interaction, setupId, pendingSetup, contentBuilder, componentBuilder) {
+	await updatePanel(
+		interaction,
+		contentBuilder(pendingSetup),
+		componentBuilder(setupId),
+	);
 }
 
-async function showSelf(interaction) {
-	const server = await getServerSettings(interaction.guild.id);
-	await updatePanel(interaction, buildSelfContent(server), buildSelfComponents());
+async function showHome(interaction, setupId, pendingSetup) {
+	await showPage(
+		interaction,
+		setupId,
+		pendingSetup,
+		buildHomeContent,
+		buildHomeComponents,
+	);
 }
 
-async function showAffiliate(interaction) {
-	const server = await getServerSettings(interaction.guild.id);
-	await updatePanel(interaction, buildAffiliateContent(server), buildAffiliateComponents());
+async function showSelf(interaction, setupId, pendingSetup) {
+	await showPage(
+		interaction,
+		setupId,
+		pendingSetup,
+		buildSelfContent,
+		buildSelfComponents,
+	);
 }
 
-async function updateSetting(interaction, settings) {
-	await Servers.update(settings, { where: { guildId: interaction.guild.id } });
+async function showAffiliate(interaction, setupId, pendingSetup) {
+	await showPage(
+		interaction,
+		setupId,
+		pendingSetup,
+		buildAffiliateContent,
+		buildAffiliateComponents,
+	);
 }
 
-async function handleButton(interaction, action) {
+async function showSubmission(interaction, setupId, pendingSetup) {
+	await Servers.upsert({
+		guildId: pendingSetup.guildId,
+		selfTwitchChannelId: pendingSetup.selfTwitchChannelId,
+		selfKickChannelId: pendingSetup.selfKickChannelId,
+		affiliateChannelId: pendingSetup.affiliateChannelId,
+		selfTwitchRoleId: pendingSetup.selfTwitchRoleId,
+		selfKickRoleId: pendingSetup.selfKickRoleId,
+		affiliateRoleId: pendingSetup.affiliateRoleId,
+	});
+
+	pendingSetups.delete(setupId);
+
+	await updatePanel(
+		interaction,
+		buildSubmissionContent(pendingSetup),
+		[],
+	);
+}
+
+function updateSetting(pendingSetup, settings) {
+	Object.assign(pendingSetup, settings);
+}
+
+async function handleButton(interaction, setupId, pendingSetup, action) {
 	if (action === `home`) {
-		await showHome(interaction);
+		await showHome(interaction, setupId, pendingSetup);
 	} else if (action === `self`) {
-		await showSelf(interaction);
+		await showSelf(interaction, setupId, pendingSetup);
 	} else if (action === `affiliate`) {
-		await showAffiliate(interaction);
+		await showAffiliate(interaction, setupId, pendingSetup);
+	} else if (action === `submit`) {
+		await showSubmission(interaction, setupId, pendingSetup);
 	} else if (action === `clearSelf`) {
-		await updateSetting(interaction, {
+		updateSetting(pendingSetup, {
 			selfTwitchChannelId: null,
 			selfKickChannelId: null,
 			selfTwitchRoleId: null,
 			selfKickRoleId: null,
 		});
-		await showSelf(interaction);
+		await showSelf(interaction, setupId, pendingSetup);
 	} else if (action === `clearAffiliate`) {
-		await updateSetting(interaction, {
+		updateSetting(pendingSetup, {
 			affiliateChannelId: null,
 			affiliateRoleId: null,
 		});
-		await showAffiliate(interaction);
+		await showAffiliate(interaction, setupId, pendingSetup);
 	}
 }
 
-async function handleSelect(interaction, group, field) {
+async function handleSelect(interaction, setupId, pendingSetup, group, field) {
 	const selectedId = interaction.values[0] || null;
 
 	if (group === `self`) {
@@ -195,16 +278,16 @@ async function handleSelect(interaction, group, field) {
 			kickRole: { selfKickRoleId: selectedId },
 		};
 
-		await updateSetting(interaction, settings[field]);
-		await showSelf(interaction);
+		updateSetting(pendingSetup, settings[field]);
+		await showSelf(interaction, setupId, pendingSetup);
 	} else if (group === `affiliate`) {
 		const settings = {
 			channel: { affiliateChannelId: selectedId },
 			role: { affiliateRoleId: selectedId },
 		};
 
-		await updateSetting(interaction, settings[field]);
-		await showAffiliate(interaction);
+		updateSetting(pendingSetup, settings[field]);
+		await showAffiliate(interaction, setupId, pendingSetup);
 	}
 }
 
@@ -217,11 +300,18 @@ module.exports = {
 
 	async execute(interaction) {
 		try {
+			const setupId = interaction.id;
 			const server = await getServerSettings(interaction.guild.id);
+			const pendingSetup = {
+				...server,
+				userId: interaction.user.id,
+			};
+
+			pendingSetups.set(setupId, pendingSetup);
 
 			await interaction.reply({
-				content: buildHomeContent(server),
-				components: buildHomeComponents(),
+				content: buildHomeContent(pendingSetup),
+				components: buildHomeComponents(setupId),
 				flags: MessageFlags.Ephemeral,
 			});
 		} catch (error) {
@@ -231,13 +321,19 @@ module.exports = {
 	},
 
 	async handleComponent(interaction) {
-		const [, group, field] = interaction.customId.split(`:`);
+		const [, setupId, group, field] = interaction.customId.split(`:`);
 
 		try {
+			const pendingSetup = await getPendingSetup(interaction, setupId);
+
+			if (!pendingSetup) {
+				return;
+			}
+
 			if (interaction.isButton()) {
-				await handleButton(interaction, group);
+				await handleButton(interaction, setupId, pendingSetup, group);
 			} else {
-				await handleSelect(interaction, group, field);
+				await handleSelect(interaction, setupId, pendingSetup, group, field);
 			}
 		} catch (error) {
 			console.error(writeLog(`Failed to update setup settings:`, error));

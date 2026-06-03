@@ -6,7 +6,6 @@ const createCronJobs = require(`./utils/crons.js`);
 const path = require(`node:path`);
 const fs = require(`node:fs`);
 
-
 // =======================
 // Create Discord client
 // =======================

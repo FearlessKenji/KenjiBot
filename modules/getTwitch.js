@@ -5,7 +5,7 @@ const channelData = require(`./twitchChannelData.js`);
 const twitchData = require(`./getTwitchDataBatch.js`);
 const twitchVideos = require(`./getTwitchVideos.js`);
 const authTokens = require(`../auth/authTokens.js`);
-const twitchClientId = process.env.twitchClientId
+const twitchClientId = process.env.twitchClientId;
 
 function buildOfflineEmbed(existingEmbed, vod) {
 	const embed = EmbedBuilder.from(existingEmbed);
@@ -41,8 +41,8 @@ function buildOfflineEmbed(existingEmbed, vod) {
 }
 
 async function updateOfflineTwitchMessage(chan, server, guild, client) {
-	const twitchAuthToken = authTokens.getAuthTokens().twitchAuthToken
-	
+	const twitchAuthToken = authTokens.getAuthTokens().twitchAuthToken;
+
 	if (!chan.twitchMessageId || !chan.twitchStreamId || !chan.twitchNotif) {
 		return;
 	}
@@ -70,7 +70,7 @@ async function updateOfflineTwitchMessage(chan, server, guild, client) {
 		twitchChannel.id,
 		chan.twitchStreamId,
 		twitchClientId,
-		twitchAuthToken
+		twitchAuthToken,
 	);
 
 	if (!vod?.url) {
@@ -130,9 +130,9 @@ async function checkTwitch(client) {
 	// Build list of all usernames for Twitch batch request
 	const channelNames = validChannels.map(c => c.channelName);
 	const streamsData = await twitchData.getTwitchDataBatch(
-		channelNames, 
-		twitchClientId, 
-		twitchAuthToken
+		channelNames,
+		twitchClientId,
+		twitchAuthToken,
 	);
 
 	for (const server of servers) {

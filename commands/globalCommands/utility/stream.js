@@ -1,6 +1,247 @@
-const { SlashCommandBuilder, MessageFlags, InteractionContextType } = require(`discord.js`);
+const {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	InteractionContextType,
+	MessageFlags,
+	SlashCommandBuilder,
+	StringSelectMenuBuilder,
+	StringSelectMenuOptionBuilder,
+} = require(`discord.js`);
 const { Servers, Channels } = require(`../../../database/dbObjects.js`);
 const { writeLog } = require(`../../../utils/writeLog.js`);
+
+const pendingAdds = new Map();
+
+function formatYesNo(value) {
+	if (value === null) {
+		return `Not Set`;
+	}
+
+	return value ? `Yes` : `No`;
+}
+
+function formatProvided(value) {
+	return value ? `Provided` : `Not provided`;
+}
+
+function buildAddContent(pendingAdd) {
+	const submitMessage = pendingAdd.needsSelections ? `\n### Select every option before submitting.` : ``;
+
+	return `## Add Stream
+- Name: **${pendingAdd.channelName}**
+- Discord: ${formatProvided(pendingAdd.discordUrl)}
+- Twitch Notifications: ${formatYesNo(pendingAdd.twitchNotif)}
+- Kick Notifications: ${formatYesNo(pendingAdd.kickNotif)}
+- Your Stream: ${formatYesNo(pendingAdd.isSelf)}${submitMessage}`;
+}
+
+function buildCompleteContent(pendingAdd) {
+	return `${buildAddContent(pendingAdd)}
+### Stream saved.`;
+}
+
+function buildYesNoComponents(customId, placeholder) {
+	return new ActionRowBuilder().addComponents(
+		new StringSelectMenuBuilder()
+			.setCustomId(customId)
+			.setPlaceholder(placeholder)
+			.addOptions(
+				new StringSelectMenuOptionBuilder()
+					.setLabel(`Yes`)
+					.setValue(`yes`),
+				new StringSelectMenuOptionBuilder()
+					.setLabel(`No`)
+					.setValue(`no`),
+			),
+	);
+}
+
+function buildAddComponents(addId) {
+	return [
+		buildYesNoComponents(`stream:${addId}:setting:twitch`, `Send Twitch notifications?`),
+		buildYesNoComponents(`stream:${addId}:setting:kick`, `Send Kick notifications?`),
+		buildYesNoComponents(`stream:${addId}:setting:self`, `Is this your stream?`),
+		new ActionRowBuilder().addComponents(
+			new ButtonBuilder()
+				.setCustomId(`stream:${addId}:submit`)
+				.setLabel(`Submit`)
+				.setStyle(ButtonStyle.Success),
+		),
+	];
+}
+
+function selectedYes(interaction) {
+	return interaction.values[0] === `yes`;
+}
+
+function buildPendingAdd(interaction) {
+	return {
+		channelName: interaction.options.getString(`name`).toLowerCase().trim(),
+		discordUrl: interaction.options.getString(`discord`) || null,
+		guildId: interaction.guild.id,
+		isSelf: null,
+		kickNotif: null,
+		needsSelections: false,
+		twitchNotif: null,
+		userId: interaction.user.id,
+	};
+}
+
+async function getPendingAdd(interaction, addId) {
+	const pendingAdd = pendingAdds.get(addId);
+
+	if (!pendingAdd || pendingAdd.userId !== interaction.user.id || pendingAdd.guildId !== interaction.guild.id) {
+		await interaction.update({
+			content: `This stream add request is no longer available. Run \`/stream add\` again.`,
+			components: [],
+		});
+		return;
+	}
+
+	return pendingAdd;
+}
+
+async function updatePanel(interaction, pendingAdd, components) {
+	await interaction.update({
+		content: buildAddContent(pendingAdd),
+		components,
+	});
+}
+
+async function showAdd(interaction, addId, pendingAdd) {
+	await updatePanel(
+		interaction,
+		pendingAdd,
+		buildAddComponents(addId),
+	);
+}
+
+async function showComplete(interaction, pendingAdd) {
+	await interaction.update({
+		content: buildCompleteContent(pendingAdd),
+		components: [],
+	});
+}
+
+async function savePendingAdd(interaction, addId, pendingAdd) {
+	await Servers.upsert({ guildId: pendingAdd.guildId });
+	await Channels.upsert({
+		channelName: pendingAdd.channelName,
+		discordUrl: pendingAdd.discordUrl,
+		guildId: pendingAdd.guildId,
+		isSelf: pendingAdd.isSelf,
+		twitchNotif: pendingAdd.twitchNotif,
+		kickNotif: pendingAdd.kickNotif,
+	});
+
+	pendingAdds.delete(addId);
+	await showComplete(interaction, pendingAdd);
+}
+
+async function startAdd(interaction) {
+	const addId = interaction.id;
+	const pendingAdd = buildPendingAdd(interaction);
+
+	pendingAdds.set(addId, pendingAdd);
+
+	await interaction.reply({
+		content: buildAddContent(pendingAdd),
+		components: buildAddComponents(addId),
+		flags: MessageFlags.Ephemeral,
+	});
+}
+
+async function removeChannel(interaction) {
+	const channelName = interaction.options.getString(`name`).toLowerCase().trim();
+	const guildId = interaction.guild.id;
+
+	const removed = await Channels.destroy({
+		where: { channelName, guildId },
+	});
+
+	if (!removed) {
+		await interaction.reply({
+			content: `Channel **${channelName}** not found in database.`,
+			flags: MessageFlags.Ephemeral,
+		});
+		return;
+	}
+
+	await interaction.reply({
+		content: `Removed **${channelName}** successfully.`,
+		flags: MessageFlags.Ephemeral,
+	});
+}
+
+function buildChannelList(channels) {
+	return channels.map(chan =>
+		`- **${chan.channelName}** ${chan.isSelf ? `(self)` : `(affiliate)`} ${chan.twitchNotif ? `(Twitch notify)` : ``} ${chan.kickNotif ? `(Kick notify)` : ``}`,
+	);
+}
+
+async function listChannels(interaction) {
+	const channels = await Channels.findAll({
+		where: { guildId: interaction.guild.id },
+		raw: true,
+	});
+
+	if (!channels.length) {
+		await interaction.reply({
+			content: `No stream channels configured.`,
+			flags: MessageFlags.Ephemeral,
+		});
+		return;
+	}
+
+	await interaction.reply({
+		content: `**Stream Channels:**\n${buildChannelList(channels).join(`\n`)}`,
+		flags: MessageFlags.Ephemeral,
+	});
+}
+
+async function handleAddSelection(interaction, step, addId) {
+	const pendingAdd = await getPendingAdd(interaction, addId);
+
+	if (!pendingAdd) {
+		return;
+	}
+
+	if (step === `twitch`) {
+		pendingAdd.twitchNotif = selectedYes(interaction);
+	} else if (step === `kick`) {
+		pendingAdd.kickNotif = selectedYes(interaction);
+	} else if (step === `self`) {
+		pendingAdd.isSelf = selectedYes(interaction);
+	}
+
+	pendingAdd.needsSelections = false;
+	await showAdd(interaction, addId, pendingAdd);
+}
+
+async function handleSubmit(interaction, addId) {
+	const pendingAdd = await getPendingAdd(interaction, addId);
+
+	if (!pendingAdd) {
+		return;
+	}
+
+	if (pendingAdd.twitchNotif === null || pendingAdd.kickNotif === null || pendingAdd.isSelf === null) {
+		pendingAdd.needsSelections = true;
+		await showAdd(interaction, addId, pendingAdd);
+		return;
+	}
+
+	await savePendingAdd(interaction, addId, pendingAdd);
+}
+
+async function handleAddComponent(interaction, addId, action, field) {
+	if (action === `setting`) {
+		await handleAddSelection(interaction, field, addId);
+	} else if (action === `submit`) {
+		await handleSubmit(interaction, addId);
+	}
+}
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -18,18 +259,6 @@ module.exports = {
 				.addStringOption(option =>
 					option.setName(`discord`)
 						.setDescription(`Optional. Discord invite URL for the channel. Shows in embed.`),
-				)
-				.addBooleanOption(option =>
-					option.setName(`self`)
-						.setDescription(`Optional. Default false. Set true if this is your own stream.`),
-				)
-				.addBooleanOption(option =>
-					option.setName(`twitch`)
-						.setDescription(`Default false. Set to true if you want Twitch notifications.`),
-				)
-				.addBooleanOption(option =>
-					option.setName(`kick`)
-						.setDescription(`Default false. Set to true if you want Kick notifications.`),
 				),
 		)
 		.addSubcommand(subcommand =>
@@ -47,158 +276,41 @@ module.exports = {
 				.setName(`list`)
 				.setDescription(`List all channels for this server and their configurations.`),
 		)
-		.addSubcommand(subcommand =>
-			subcommand
-				.setName(`setup`)
-				.setDescription(`Configure channel and role settings.`)
-				.addChannelOption(option =>
-					option.setName(`self-twitch-channel`)
-						.setDescription(`Discord channel for Twitch notifications when a specific channel goes live. Typically your own.`),
-				)
-				.addRoleOption(option =>
-					option.setName(`self-twitch-role`)
-						.setDescription(`Optional notification role for when a specific channel goes live on Twitch. Typically your own.`),
-				)
-				.addChannelOption(option =>
-					option.setName(`self-kick-channel`)
-						.setDescription(`Discord channel for Kick notifications when a specific channel goes live. Typically your own.`),
-				)
-				.addRoleOption(option =>
-					option.setName(`self-kick-role`)
-						.setDescription(`Optional notification role for when a specific channel goes live on Kick. Typically your own.`),
-				)
-				.addChannelOption(option =>
-					option.setName(`affiliate-channel`)
-						.setDescription(`Discord channel for notifications when people you like go live.`),
-				)
-				.addRoleOption(option =>
-					option.setName(`affiliate-role`)
-						.setDescription(`Optional notification role for when people you like go live.`),
-				),
-		)
 		.setDefaultMemberPermissions(0) // Restrict to admins or bot owner,
 		.setContexts(InteractionContextType.Guild),
 
 	async execute(interaction) {
-		const selfTwitchChannelId = interaction.options.getChannel(`self-twitch-channel`)?.id || null;
-		const affiliateChannelId = interaction.options.getChannel(`affiliate-channel`)?.id || null;
-		const selfKickChannelId = interaction.options.getChannel(`self-kick-channel`)?.id || null;
-		const selfTwitchRoleId = interaction.options.getRole(`self-twitch-role`)?.id || null;
-		const affiliateRoleId = interaction.options.getRole(`affiliate-role`)?.id || null;
-		const selfKickRoleId = interaction.options.getRole(`self-kick-role`)?.id || null;
 		const subcommand = interaction.options.getSubcommand();
-		const guildId = interaction.guild.id;
 
-		if (subcommand === `setup`) {
-			try {
-				await Servers.upsert({
-					guildId,
-					selfTwitchChannelId,
-					affiliateChannelId,
-					selfKickChannelId,
-					selfTwitchRoleId,
-					affiliateRoleId,
-					selfKickRoleId,
-				});
-				await interaction.reply({
-					content: `Server settings updated accordingly:
-### **When you go live:**
--Twitch Role: ${selfTwitchRoleId ? `<@&${selfTwitchRoleId}>` : `Not Set`}
--Twitch Channel: ${selfTwitchChannelId ? `<#${selfTwitchChannelId}>` : `Not Set`}
--Kick Role: ${selfKickRoleId ? `<@&${selfKickRoleId}>` : `Not Set`}
--Kick Channel: ${selfKickChannelId ? `<#${selfKickChannelId}>` : `Not Set`}
-### When someone you know goes live:
--Role: ${affiliateRoleId ? `<@&${affiliateRoleId}>` : `Not Set`}
--Channel: ${affiliateChannelId ? `<#${affiliateChannelId}>` : `Not Set`}`,
-					flags: MessageFlags.Ephemeral,
-				});
-			} catch (error) {
-				console.error(writeLog(`Failed to update server settings:`, error));
-				await interaction.reply({ content: `Failed to update server settings.`, flags: MessageFlags.Ephemeral });
+		try {
+			if (subcommand === `add`) {
+				await startAdd(interaction);
+			} else if (subcommand === `remove`) {
+				await removeChannel(interaction);
+			} else if (subcommand === `list`) {
+				await listChannels(interaction);
 			}
-		} else if (subcommand === `add`) {
-			const twitchNotif = interaction.options.getBoolean(`twitch`) ?? false;
-			const discordUrl = interaction.options.getString(`discord`) || null;
-			const kickNotif = interaction.options.getBoolean(`kick`) ?? false;
-			const isSelf = interaction.options.getBoolean(`self`) ?? false;
-			const channelName = interaction.options.getString(`name`).toLowerCase().trim();
+		} catch (error) {
+			console.error(writeLog(`Failed to run stream ${subcommand}:`, error));
+			await interaction.reply({
+				content: `Failed to run stream ${subcommand}.`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+	},
 
-			try {
-				await Servers.upsert({ guildId });
-				await Channels.upsert({
-					channelName,
-					discordUrl,
-					isSelf,
-					guildId,
-					twitchNotif,
-					kickNotif,
-				});
+	async handleComponent(interaction) {
+		const [, addId, action, field] = interaction.customId.split(`:`);
 
-				await interaction.reply({
-					content: `Added **${channelName}** successfully.`,
-					flags: MessageFlags.Ephemeral,
-				});
-			} catch (error) {
-				console.error(writeLog(`Failed to add channel ${channelName}:`, error));
-				await interaction.reply({
-					content: `Failed to add **${channelName}**.`,
-					flags: MessageFlags.Ephemeral,
-				});
-			}
-		} else if (subcommand === `remove`) {
-			const channelName = interaction.options.getString(`name`).toLowerCase().trim();
+		try {
+			await handleAddComponent(interaction, addId, action, field);
+		} catch (error) {
+			console.error(writeLog(`Failed to add stream settings:`, error));
 
-			try {
-				const removed = await Channels.destroy({
-					where: { channelName, guildId },
-				});
-
-				if (!removed) {
-					return interaction.reply({
-						content: `Channel **${channelName}** not found in database.`,
-						flags: MessageFlags.Ephemeral,
-					});
-				}
-
-				await interaction.reply({
-					content: `Removed **${channelName}** successfully.`,
-					flags: MessageFlags.Ephemeral,
-				});
-			} catch (error) {
-				console.error(writeLog(`Failed to remove ${channelName}:`, error));
-				await interaction.reply({
-					content: `Failed to remove **${channelName}**.`,
-					flags: MessageFlags.Ephemeral,
-				});
-			}
-		} else if (subcommand === `list`) {
-			try {
-				const channels = await Channels.findAll({
-					where: { guildId },
-					raw: true,
-				});
-
-				if (!channels.length) {
-					return interaction.reply({
-						content: `No stream channels configured.`,
-						flags: MessageFlags.Ephemeral,
-					});
-				}
-
-				const list = channels.map(chan =>
-					`• **${chan.channelName}** ${chan.isSelf ? `(self)` : `(affiliate)`} ${chan.twitchNotif ? `(Twitch notify)` : ``} ${chan.kickNotif ? `(Kick notify)` : ``}`,
-				);
-
-				await interaction.reply({
-					content: `**Stream Channels:**\n${list.join(`\n`)}`,
-					flags: MessageFlags.Ephemeral,
-				});
-			} catch (error) {
-				console.error(writeLog(`An error occurred while fetching the channel list:`, error));
-				await interaction.reply({
-					content: `An error occurred while fetching the channel list.`,
-					flags: MessageFlags.Ephemeral,
-				});
+			if (interaction.replied || interaction.deferred) {
+				await interaction.followUp({ content: `Failed to add stream settings.`, flags: MessageFlags.Ephemeral });
+			} else {
+				await interaction.reply({ content: `Failed to add stream settings.`, flags: MessageFlags.Ephemeral });
 			}
 		}
 	},

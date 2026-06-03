@@ -117,7 +117,7 @@ async function checkKick(client) {
 	const streamsData = await kickData.getKickDataBatch(
 		channelNames,
 		kickClientId,
-		kickAuthToken
+		kickAuthToken,
 	);
 
 	for (const server of servers) {
@@ -175,7 +175,7 @@ async function checkKick(client) {
 				userID,
 				chan.channelName,
 				kickClientId,
-				kickAuthToken
+				kickAuthToken,
 			);
 
 			if (!kickUser) {

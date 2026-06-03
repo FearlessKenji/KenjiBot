@@ -48,7 +48,7 @@ const missingEnv = REQUIRED_ENV.filter(key => isEmpty(process.env[key]));
 if (missingEnv.length) {
 	fatal(
 		`.env is missing required fields:\n` +
-		missingEnv.map(k => `  - ${k}`).join(`\n`)
+		missingEnv.map(k => `  - ${k}`).join(`\n`),
 	);
 }
 
@@ -57,7 +57,7 @@ if (missingEnv.length) {
 if (!fs.existsSync(configPath)) {
 	fatal(
 		`Missing config.json\n` +
-		`Copy blank_config.json to config/config.json and fill in required fields.`
+		`Copy blank_config.json to config/config.json and fill in required fields.`,
 	);
 }
 
@@ -70,7 +70,7 @@ try {
 } catch (err) {
 	fatal(
 		`config.json is not valid JSON:\n` +
-		err.message
+		err.message,
 	);
 }
 
