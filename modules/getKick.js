@@ -220,9 +220,7 @@ async function checkKick(client) {
 				.setThumbnail(kickUser.profile_picture)
 				.setImage(`${streamInfo.stream.thumbnail}?cacheBypass=${Date.now()}`);
 
-			const content = chan.isSelf ?
-				`${roleMention}I just went live on Kick! I'm streaming ${streamInfo.category.name}!` :
-				`${roleMention}An affiliate has gone live on Kick! They're streaming ${streamInfo.category.name}!`;
+			const content = `${roleMention}${kickUser.name} just went live on Kick streaming ${streamInfo.category.name}!`
 
 			// Send or edit Discord message
 			try {

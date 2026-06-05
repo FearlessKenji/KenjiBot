@@ -47,7 +47,7 @@ module.exports = (sequelize, DataTypes) => {
 		twitchNotif: {
 			type: DataTypes.BOOLEAN,
 			allowNull: false,
-			defaultValue: true,
+			defaultValue: false,
 		},
 		kickMessageId: {
 			type: DataTypes.STRING,
@@ -62,7 +62,7 @@ module.exports = (sequelize, DataTypes) => {
 		kickNotif: {
 			type: DataTypes.BOOLEAN,
 			allowNull: false,
-			defaultValue: true,
+			defaultValue: false,
 		},
 		guildId: {
 			type: DataTypes.STRING,

@@ -8,6 +8,7 @@ const {
 	StringSelectMenuBuilder,
 	StringSelectMenuOptionBuilder,
 } = require(`discord.js`);
+
 const { Servers, Channels } = require(`../../../database/dbObjects.js`);
 const { writeLog } = require(`../../../utils/writeLog.js`);
 
@@ -21,16 +22,19 @@ function formatYesNo(value) {
 	return value ? `Yes` : `No`;
 }
 
-function formatProvided(value) {
-	return value ? `Provided` : `Not provided`;
+function formatDiscord(value) {
+	return value ? `<${value}>` : `Not provided`;
 }
 
 function buildAddContent(pendingAdd) {
 	const submitMessage = pendingAdd.needsSelections ? `\n### Select every option before submitting.` : ``;
+	const title = pendingAdd.isEditing
+		? `## Edit Stream`
+		: `## Add Stream`;
 
-	return `## Add Stream
+	return `${title}
 - Name: **${pendingAdd.channelName}**
-- Discord: ${formatProvided(pendingAdd.discordUrl)}
+- Discord: ${formatDiscord(pendingAdd.discordUrl)}
 - Twitch Notifications: ${formatYesNo(pendingAdd.twitchNotif)}
 - Kick Notifications: ${formatYesNo(pendingAdd.kickNotif)}
 - Your Stream: ${formatYesNo(pendingAdd.isSelf)}${submitMessage}`;
@@ -59,8 +63,8 @@ function buildYesNoComponents(customId, placeholder) {
 
 function buildAddComponents(addId) {
 	return [
-		buildYesNoComponents(`stream:${addId}:setting:twitch`, `Send Twitch notifications?`),
-		buildYesNoComponents(`stream:${addId}:setting:kick`, `Send Kick notifications?`),
+		buildYesNoComponents(`stream:${addId}:setting:twitch`, `Post Twitch streams?`),
+		buildYesNoComponents(`stream:${addId}:setting:kick`, `Post Kick streams?`),
 		buildYesNoComponents(`stream:${addId}:setting:self`, `Is this your stream?`),
 		new ActionRowBuilder().addComponents(
 			new ButtonBuilder()
@@ -90,10 +94,9 @@ function buildPendingAdd(interaction) {
 
 async function getPendingAdd(interaction, addId) {
 	const pendingAdd = pendingAdds.get(addId);
-
 	if (!pendingAdd || pendingAdd.userId !== interaction.user.id || pendingAdd.guildId !== interaction.guild.id) {
 		await interaction.update({
-			content: `This stream add request is no longer available. Run \`/stream add\` again.`,
+			content: `This request has timed out. Run \`/stream add\` again.`,
 			components: [],
 		});
 		return;
@@ -140,8 +143,29 @@ async function savePendingAdd(interaction, addId, pendingAdd) {
 }
 
 async function startAdd(interaction) {
+
+	const channelName = interaction.options.getString(`name`).toLowerCase().trim();
+	const existingChannel = await Channels.findOne({
+		where: {
+			channelName,
+			guildId: interaction.guild.id,
+		},
+		raw: true,
+	});
+
 	const addId = interaction.id;
-	const pendingAdd = buildPendingAdd(interaction);
+	const pendingAdd = existingChannel
+		? {
+			...existingChannel,
+			userId: interaction.user.id,
+			guildId: interaction.guild.id,
+			needsSelections: false,
+			isEditing: true,
+		}
+		: {
+			...buildPendingAdd(interaction),
+			isEditing: false,
+		};
 
 	pendingAdds.set(addId, pendingAdd);
 
@@ -250,7 +274,7 @@ module.exports = {
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName(`add`)
-				.setDescription(`Add or edit a channel.`)
+				.setDescription(`Add or edit a channel. Tab to add optional Discord invite link.`)
 				.addStringOption(option =>
 					option.setName(`name`)
 						.setDescription(`Username.`)
@@ -258,7 +282,7 @@ module.exports = {
 				)
 				.addStringOption(option =>
 					option.setName(`discord`)
-						.setDescription(`Optional. Discord invite URL for the channel. Shows in embed.`),
+						.setDescription(`Discord invite URL for the channel. Shows in embed.`),
 				),
 		)
 		.addSubcommand(subcommand =>

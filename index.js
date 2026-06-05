@@ -62,8 +62,11 @@ for (const file of fs.readdirSync(eventsPath).filter(f => f.endsWith(`.js`))) {
 // =======================
 // Global error handling
 // =======================
-process.on(`uncaughtException`, err => {
-	console.error(writeLog(`Uncaught exception:`, err));
+process.on('uncaughtException', (error) => {
+    console.error(error);
+    console.error(error.message);
+    console.error(error.parent);
+    console.error(error.original);
 });
 
 // =======================

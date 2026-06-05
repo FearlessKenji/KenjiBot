@@ -53,7 +53,7 @@ async function updateOfflineTwitchMessage(chan, server, guild, client) {
 	const discordChannel = client.channels.cache.get(discordChannelId);
 
 	if (!discordChannel) {
-		console.error(writeLog(`Twitch VOD update cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
+		console.error(writeLog(`Twitch VoD update cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
 		return;
 	}
 
@@ -227,9 +227,7 @@ async function checkTwitch(client) {
 				.setThumbnail(twitchChannel.thumbnail_url)
 				.setImage(`https://static-cdn.jtvnw.net/previews-ttv/live_user_${twitchChannel.broadcaster_login}-640x360.jpg?cacheBypass=${Date.now()}`);
 
-			const content = chan.isSelf ?
-				`${roleMention}I just went live on Twitch! I'm streaming ${twitchChannel.game_name}!` :
-				`${roleMention}An affiliate has gone live on Twitch! They're streaming ${twitchChannel.game_name}!`;
+			const content = `${roleMention}${twitchChannel.display_name} just went live on Twitch streaming ${twitchChannel.game_name}!`
 
 			// Send or edit Discord message
 			try {
