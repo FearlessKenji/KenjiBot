@@ -40,7 +40,7 @@ for (const scope of fs.readdirSync(commandsPath)) {
 			if (command.data && command.execute) {
 				client.commands.set(command.data.name, command);
 			} else {
-				console.warn(writeLog(`[WARNING] ${file} missing data or execute`));
+				writeLog(`[WARNING] ${file} missing data or execute`);
 			}
 		}
 	}
@@ -63,10 +63,10 @@ for (const file of fs.readdirSync(eventsPath).filter(f => f.endsWith(`.js`))) {
 // Global error handling
 // =======================
 process.on('uncaughtException', (error) => {
-    console.error(error);
-    console.error(error.message);
-    console.error(error.parent);
-    console.error(error.original);
+    writeLog(error);
+    writeLog(error.message);
+    writeLog(error.parent);
+    writeLog(error.original);
 });
 
 // =======================
@@ -78,13 +78,13 @@ client.login(process.env.TOKEN);
 // Shutdown logic
 // =======================
 function shutdown() {
-	console.log(writeLog(`Stopping bot...`));
+	writeLog(`[INFO] Stopping bot...`);
 
 	if (client.cronJobs) {
 		for (const [name, job] of Object.entries(client.cronJobs)) {
 			if (job.running) {
 				job.stop();
-				console.log(writeLog(`${name} cron stopped.`));
+				writeLog(`[INFO] ${name} cron stopped.`);
 			}
 		}
 	}

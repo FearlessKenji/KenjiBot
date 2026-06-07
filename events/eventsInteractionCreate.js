@@ -1,4 +1,5 @@
 const { Events, MessageFlags } = require(`discord.js`);
+const { writeLog } = require(`../utils/writeLog.js`)
 
 module.exports = {
 	name: Events.InteractionCreate,
@@ -8,15 +9,15 @@ module.exports = {
 			const command = interaction.client.commands.get(interaction.commandName);
 
 			if (!command) {
-				console.error(`No command matching ${interaction.commandName} was found.`);
+				writeLog(`[WARNING] No command matching ${interaction.commandName} was found.`);
 				return;
 			}
 
 			try {
 				await command.execute(interaction);
 			} catch (error) {
-				console.error(`Error executing ${interaction.commandName}`);
-				console.error(error);
+				writeLog(`[ERROR] Error executing ${interaction.commandName}`);
+				writeLog(error);
 			}
 
 			return;
@@ -42,7 +43,7 @@ module.exports = {
 			try {
 				await command.handleComponent(interaction);
 			} catch (error) {
-				console.error(error);
+				writeLog(`[ERROR] Error handling interaction:`, error);
 
 				if (interaction.replied || interaction.deferred) {
 					await interaction.followUp({

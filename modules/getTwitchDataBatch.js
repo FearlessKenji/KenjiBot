@@ -1,4 +1,4 @@
-const { writeLog } = require(`../utils/writeLog`);
+const { writeLog } = require(`../utils/writeLog.js`);
 
 async function getTwitchDataBatch(channelNames, clientID, authKey) {
 	const uniqueNames = [...new Set(channelNames)];
@@ -22,7 +22,10 @@ async function getTwitchDataBatch(channelNames, clientID, authKey) {
 				const data = await res.json();
 				return { name, data: data.data[0] ?? null, error: false };
 			} catch (err) {
-				console.error(writeLog(`Failed to fetch Twitch data for ${name}:`, err));
+				writeLog(`[ERROR] Failed to fetch Twitch data for ${name}:`, err);
+				if (err.cause) {
+					writeLog(`Cause:`, err.cause);
+				}
 				return { name, data: null, error: true };
 			}
 		}),

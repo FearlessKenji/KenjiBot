@@ -1,4 +1,4 @@
-const { writeLog } = require(`../utils/writeLog`);
+const { writeLog } = require(`../utils/writeLog.js`);
 
 async function getData(id, user, clientID, authKey) {
 	try {
@@ -13,7 +13,7 @@ async function getData(id, user, clientID, authKey) {
 		);
 
 		if (!res.ok) {
-			console.error(writeLog(`Kick API returned ${res.status}: ${res.statusText}`));
+			writeLog(`[WARNING] Kick API returned ${res.status}: ${res.statusText}`);
 			return false;
 		}
 
@@ -27,7 +27,7 @@ async function getData(id, user, clientID, authKey) {
 
 		return channel || false;
 	} catch (err) {
-		console.error(writeLog(`Error fetching Kick user data for ${user}:`, err));
+		writeLog(`[ERROR] Error fetching Kick user data for ${user}:`, err);
 		return false;
 	}
 }

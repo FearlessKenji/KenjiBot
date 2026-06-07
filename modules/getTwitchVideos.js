@@ -1,4 +1,4 @@
-const { writeLog } = require(`../utils/writeLog`);
+const { writeLog } = require(`../utils/writeLog.js`);
 
 async function getVodForStream(userId, streamId, clientID, authKey) {
 	try {
@@ -21,7 +21,7 @@ async function getVodForStream(userId, streamId, clientID, authKey) {
 
 		return videos.find(video => video.stream_id === streamId) || null;
 	} catch (err) {
-		console.error(writeLog(`Failed to fetch Twitch VOD for stream ${streamId}:`, err));
+		writeLog(`[ERROR] Failed to fetch Twitch VOD for stream ${streamId}:`, err);
 		return null;
 	}
 }

@@ -1,4 +1,4 @@
-const { writeLog } = require(`../utils/writeLog`);
+const { writeLog } = require(`../utils/writeLog.js`);
 
 async function getData(channelName, clientID, authKey) {
 	try {
@@ -13,7 +13,7 @@ async function getData(channelName, clientID, authKey) {
 		);
 
 		if (!res.ok) {
-			console.error(writeLog(`Twitch API returned ${res.status}: ${res.statusText}`));
+			writeLog(`[WARNING] Twitch API returned ${res.status}: ${res.statusText}`);
 			return false;
 		}
 
@@ -27,7 +27,7 @@ async function getData(channelName, clientID, authKey) {
 
 		return channel || false;
 	} catch (err) {
-		console.error(writeLog(`Error fetching Twitch channel data:`, err));
+		writeLog(`[ERROR] Error fetching Twitch channel data:`, err);
 		return false;
 	}
 }

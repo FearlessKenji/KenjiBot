@@ -1,4 +1,4 @@
-const { writeLog } = require(`../utils/writeLog`);
+const { writeLog } = require(`../utils/writeLog.js`);
 
 async function getKickDataBatch(channelNames, clientID, authKey) {
 	const uniqueNames = [...new Set(channelNames)];
@@ -24,7 +24,10 @@ async function getKickDataBatch(channelNames, clientID, authKey) {
 
 				return { name, data: data.data?.[0] ?? null, error: false };
 			} catch (err) {
-				console.error(writeLog(`Failed to fetch Kick data for ${name}:`, err));
+				writeLog(`[ERROR] Failed to fetch Kick data for ${name}:`, err);
+				if (err.cause) {
+					writeLog(`Cause:`, err.cause);
+				}
 				return { name, data: null, error: true };
 			}
 		}),

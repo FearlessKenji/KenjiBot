@@ -1,26 +1,26 @@
 const { CronJob } = require(`cron`);
-const kick = require(`../modules/getKick.js`);
-const twitch = require(`../modules/getTwitch.js`);
+const { getKick } = require(`../modules/getKick.js`);
+const { getTwitch } = require(`../modules/getTwitch.js`);
 const config = require(`../config/config.json`);
 const { ActivityType } = require(`discord.js`);
-const kickAuth = require(`../auth/updateKickAuthConfig.js`);
-const twitchAuth = require(`../auth/updateTwitchAuthConfig.js`);
+const { updateKickAuth } = require(`../auth/updateKickAuth.js`);
+const { updateTwitchAuth } = require(`../auth/updateTwitchAuth.js`);
 
 module.exports = (client) => {
 	let activityIndex = -1;
 
 	return {
 		Twitch: new CronJob(config.twitchCron, async () => {
-			await twitch.checkTwitch(client);
+			await getTwitch(client);
 		}),
 
 		Kick: new CronJob(config.kickCron, async () => {
-			await kick.checkKick(client);
+			await getKick(client);
 		}),
 
 		Status: new CronJob(config.statusCron, () => {
 			let totalMembers = 0;
-			client.guilds.cache.forEach(g => totalMembers += g.memberCount);
+			client.guilds.cache.forEach(guild => totalMembers += guild.memberCount);
 
 			const activities = [
 				{ type: ActivityType.Watching, name: `${client.guilds.cache.size} servers` },
@@ -42,8 +42,8 @@ module.exports = (client) => {
 		}),
 
 		Auth: new CronJob(config.authCron, () => {
-			twitchAuth.updateTwitchAuthConfig();
-			kickAuth.updateKickAuthConfig();
+			updateTwitchAuth();
+			updateKickAuth();
 		}),
 	};
 };

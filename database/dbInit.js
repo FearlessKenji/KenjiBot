@@ -1,5 +1,5 @@
-const { sequelize } = require(`../database/dbObjects`);
-const { writeLog } = require(`../utils/writeLog`);
+const { sequelize } = require(`../database/dbObjects.js`);
+const { writeLog } = require(`../utils/writeLog.js`);
 const path = require(`node:path`);
 const fs = require(`node:fs`);
 
@@ -9,12 +9,10 @@ async function dbInit() {
 
 	await sequelize.sync(); // alter: true for attempted less destructive reforming of database. force: true for destructive complete remaking of database.
 
-	console.log(
-		writeLog(
-			exists ?
-				`[DB] Database synced` :
-				`[DB] Database created and synced`,
-		),
+	writeLog(
+		exists ?
+			`[INFO] Database synced` :
+			`[INFO] Database created and synced`,
 	);
 }
 

@@ -1,9 +1,11 @@
 const auth = require(`./authTwitch.js`);
 const { updateAuthTokens } = require(`./authTokens.js`);
 const { twitchClientId, twitchSecret } = process.env;
+const { writeLog } = require(`../utils/writeLog.js`)
 
 // get a new authorization key and update the runtime auth cache
-async function updateTwitchAuthConfig() {
+async function updateTwitchAuth() {
+	// writeLog(`[INFO] Generating new Twitch auth token...`)
 	const authKey = await auth.getKey(
 		twitchClientId,
 		twitchSecret,
@@ -14,6 +16,7 @@ async function updateTwitchAuthConfig() {
 	}
 
 	updateAuthTokens({ twitchAuthToken: authKey });
+	// writeLog(`[INFO] New Twitch auth token stored.`)
 }
 
-module.exports = { updateTwitchAuthConfig };
+module.exports = { updateTwitchAuth };

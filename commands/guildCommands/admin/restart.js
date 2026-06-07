@@ -11,7 +11,7 @@ module.exports = {
 	async execute(interaction) {
 		if (interaction.user.id === config.botOwner) {
 			await interaction.reply({ content: `Restarting...`, flags: MessageFlags.Ephemeral });
-			writeLog(`Restart command used by ${interaction.user.username}.`, `Restarting...`);
+			writeLog(`[INFO] Restart command used by ${interaction.user.username}.`, `Restarting...`);
 			process.exit();
 		} else {
 			await interaction.reply({ content: `You are not authorized to use this command.`, flags: MessageFlags.Ephemeral });

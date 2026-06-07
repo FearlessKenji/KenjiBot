@@ -8,9 +8,9 @@ module.exports = {
 		try {
 			await Servers.upsert({ guildId: guild.id });
 			const owner = await guild.fetchOwner();
-			console.log(writeLog(`Added to new server: ${guild.name}) | ID: ${guild.id}\nOwner: ${owner} | OwnerUsername: ${owner.user.username}.`));
+			writeLog(`[INFO] Added to new server: ${guild.name}) | ID: ${guild.id}\nOwner: ${owner} | OwnerUsername: ${owner.user.username}.`);
 		} catch (error) {
-			console.error(writeLog(`Failed to update server table upon arrival.`, error));
+			writeLog(`[ERROR] Failed to update server table upon arrival.`, error);
 		}
 	},
 };

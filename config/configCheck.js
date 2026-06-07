@@ -1,10 +1,11 @@
 const path = require(`node:path`);
 const fs = require(`node:fs`);
+const { writeLog } = require(`../utils/writeLog.js`)
 
 const isPM2 = process.env.pm_id !== undefined;
 const configPath = path.join(process.cwd(), `config`, `config.json`);
 
-console.log(`Validating config files...`);
+writeLog(`[INFO] Validating config files...`);
 
 function pauseAndExit(code = 1) {
 	if (isPM2) {
@@ -12,14 +13,14 @@ function pauseAndExit(code = 1) {
 	}
 
 	process.stdin.resume();
-	console.error(`\nPress Enter to exit...`);
+	writeLog(`\nPress Enter to exit...`);
 	process.stdin.once(`data`, () => {
 		process.exit(code);
 	});
 }
 
 function fatal(message) {
-	console.error(`\n${message}\n`);
+	writeLog(`\n[ERROR][FATAL] ${message}\n`);
 	pauseAndExit(1);
 }
 
@@ -108,7 +109,7 @@ if (missingStrict.length || missingDefaults.length) {
 	fatal(message);
 }
 
-console.log(`Configuration files validated.`);
+writeLog(`[INFO] Configuration files validated.`);
 
 /* ---------- export ---------- */
 

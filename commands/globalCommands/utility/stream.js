@@ -315,9 +315,9 @@ module.exports = {
 				await listChannels(interaction);
 			}
 		} catch (error) {
-			console.error(writeLog(`Failed to run stream ${subcommand}:`, error));
+			writeLog(`[ERROR] Failed to execute command ${subcommand}:`, error);
 			await interaction.reply({
-				content: `Failed to run stream ${subcommand}.`,
+				content: `Failed to execute command ${subcommand}.`,
 				flags: MessageFlags.Ephemeral,
 			});
 		}
@@ -329,7 +329,7 @@ module.exports = {
 		try {
 			await handleAddComponent(interaction, addId, action, field);
 		} catch (error) {
-			console.error(writeLog(`Failed to add stream settings:`, error));
+			writeLog(`[ERROR] Failed to add stream settings:`, error);
 
 			if (interaction.replied || interaction.deferred) {
 				await interaction.followUp({ content: `Failed to add stream settings.`, flags: MessageFlags.Ephemeral });

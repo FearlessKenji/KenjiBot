@@ -50,7 +50,7 @@ async function updateOfflineKickMessage(chan, server, guild, client) {
 	const discordChannel = client.channels.cache.get(discordChannelId);
 
 	if (!discordChannel) {
-		console.error(writeLog(`Kick VOD update cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
+		writeLog(`[WARNING] Kick VoD update cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}). Channel not found.`);
 		return;
 	}
 
@@ -86,7 +86,7 @@ async function updateOfflineKickMessage(chan, server, guild, client) {
  * - Fetches Kick data once globally
  * - Processes Discord updates per server
  */
-async function checkKick(client) {
+async function getKick(client) {
 	const auth = authTokens.getAuthTokens();
 	const kickAuthToken = auth.kickAuthToken;
 
@@ -122,7 +122,7 @@ async function checkKick(client) {
 
 	for (const server of servers) {
 		const guild = client.guilds.cache.get(server.guildId);
-		// console.log(writeLog(`Checking channels for ${guild?.name ?? 'Unknown guild'} (ID: ${server.guildId})`));
+		// writeLog(`[INFO] Checking channels for ${guild?.name ?? 'Unknown guild'} (ID: ${server.guildId})`);
 
 		// O(1) lookup instead of filtering entire dataset per server
 		const serverChannels = channelsByGuild.get(server.guildId) || [];
@@ -157,7 +157,7 @@ async function checkKick(client) {
 			const discordChannel = client.channels.cache.get(discordChannelId);
 
 			if (!discordChannel) {
-				console.error(writeLog(`Kick updates cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}).`));
+				writeLog(`[WARNING] Kick updates cannot be sent to ${discordChannelId} channel in server ${guild?.name} (ID: ${server.guildId}). Channel not found.`);
 				return;
 			}
 
@@ -241,7 +241,7 @@ async function checkKick(client) {
 				// Update DB with new messageId
 				await Channels.update({ kickMessageId: message.id, kickIsLive: streamInfo?.stream?.is_live }, { where: { id: chan.id } });
 			} catch (err) {
-				console.error(writeLog(`Failed to send/edit kick message for ${chan.channelName}:`, err));
+				writeLog(`[ERROR] Failed to send/edit kick message for ${chan.channelName}:`, err);
 			}
 		});
 
@@ -250,4 +250,4 @@ async function checkKick(client) {
 	}
 }
 
-module.exports = { checkKick };
+module.exports = { getKick };

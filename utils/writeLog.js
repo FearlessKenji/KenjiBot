@@ -12,7 +12,15 @@ function initLog() {
 	return `${header}\n${separator}\n[${timestamp}] Log file created.\n${separator}\n`;
 }
 
-function writeLog(message, err) {
+function getErrorFile(err) {
+	if (!err?.stack) return `unknown`;
+
+	const match = err.stack.match(/\((.*?):\d+:\d+\)/);
+	return match ? path.basename(match[1]) : `unknown`;
+}
+
+function writeLog(message, err, { includeStack = false, includeCause = true } = {}) {
+
 	try {
 		if (!fs.existsSync(logsFolder)) {
 			fs.mkdirSync(logsFolder, { recursive: true });
@@ -22,14 +30,49 @@ function writeLog(message, err) {
 		}
 
 		const timestamp = dateToString(Date.now());
-		const errorText = err ? (err.stack || err.message || err) : ``;
-		const logData = `[${timestamp}] ${message}${errorText ? `\n${errorText}` : ``}\n`;
+
+		let errorText = ``;
+
+		if (err) {
+			if (includeStack) {
+				errorText = err.stack || err.message || String(err);
+
+				if (includeCause && err.cause) {
+					errorText += `\nCause: ${err.cause.stack || err.cause.message || err.cause
+						}`;
+				}
+			} else {
+				errorText = `Error: ${err.message} inside ${getErrorFile(err)}.`;
+
+				if (includeCause && err.cause) {
+					errorText += `\nCause: ${err.cause.message || String(err.cause)
+						}`;
+				}
+			}
+		}
+
+		const logData =
+			`[${timestamp}] ${message}` +
+			(errorText ? `\n${errorText}` : ``) +
+			`\n`;
 
 		fs.appendFileSync(logFile, logData);
+
+		const trimmedLog = logData.trim();
+
+		if (err || message.includes(`[ERROR]`)) {
+			console.error(trimmedLog);
+		} else if (message.includes(`[WARNING]`)) {
+			console.warn(trimmedLog);
+		} else {
+			console.log(trimmedLog);
+		}
+
 		return logData.trim();
 	} catch (fsErr) {
-		console.error(`[writeLog] Failed to write log: ${fsErr.stack || fsErr}`);
-		return `[writeLog] Failed to write log: ${fsErr.stack || fsErr}`;
+		const failMessage = `[writeLog] Failed to write log: ${fsErr.stack || fsErr}`;
+		console.error(failMessage);
+		return failMessage;
 	}
 }
 

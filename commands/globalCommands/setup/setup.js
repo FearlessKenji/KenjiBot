@@ -315,7 +315,7 @@ module.exports = {
 				flags: MessageFlags.Ephemeral,
 			});
 		} catch (error) {
-			console.error(writeLog(`Failed to open setup panel:`, error));
+			writeLog(`[ERROR] Failed to open setup panel:`, error);
 			await interaction.reply({ content: `Failed to open setup panel.`, flags: MessageFlags.Ephemeral });
 		}
 	},
@@ -336,7 +336,7 @@ module.exports = {
 				await handleSelect(interaction, setupId, pendingSetup, group, field);
 			}
 		} catch (error) {
-			console.error(writeLog(`Failed to update setup settings:`, error));
+			writeLog(`[ERROR] Failed to update setup settings:`, error);
 
 			if (interaction.replied || interaction.deferred) {
 				await interaction.followUp({ content: `Failed to update setup settings.`, flags: MessageFlags.Ephemeral });
