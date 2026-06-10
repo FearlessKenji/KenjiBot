@@ -8,6 +8,11 @@ const { info, warn } = require(`../utils/writeLog.js`);
 const path = require(`node:path`);
 const fs = require(`node:fs`);
 
+// Startup migrations do two jobs: tracked migrations repair known historical
+// schema/data issues, and schema reconciliation aligns SQLite tables with the
+// current Sequelize models. Reconciliation can remove columns, so it creates a
+// database backup before the first destructive change in each startup pass.
+
 function getModelAttributes(model) {
 	return model.getAttributes ? model.getAttributes() : model.rawAttributes;
 }

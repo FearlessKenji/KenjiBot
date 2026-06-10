@@ -237,10 +237,6 @@ async function showSubmission(interaction, setupId, pendingSetup) {
 	);
 }
 
-function updateSetting(pendingSetup, settings) {
-	Object.assign(pendingSetup, settings);
-}
-
 async function handleButton(interaction, setupId, pendingSetup, action) {
 	if (action === `home`) {
 		await showHome(interaction, setupId, pendingSetup);
@@ -251,7 +247,7 @@ async function handleButton(interaction, setupId, pendingSetup, action) {
 	} else if (action === `submit`) {
 		await showSubmission(interaction, setupId, pendingSetup);
 	} else if (action === `clearSelf`) {
-		updateSetting(pendingSetup, {
+		Object.assign(pendingSetup, {
 			selfTwitchChannelId: null,
 			selfKickChannelId: null,
 			selfTwitchRoleId: null,
@@ -259,7 +255,7 @@ async function handleButton(interaction, setupId, pendingSetup, action) {
 		});
 		await showSelf(interaction, setupId, pendingSetup);
 	} else if (action === `clearAffiliate`) {
-		updateSetting(pendingSetup, {
+		Object.assign(pendingSetup, {
 			affiliateChannelId: null,
 			affiliateRoleId: null,
 		});
@@ -278,7 +274,7 @@ async function handleSelect(interaction, setupId, pendingSetup, group, field) {
 			kickRole: { selfKickRoleId: selectedId },
 		};
 
-		updateSetting(pendingSetup, settings[field]);
+		Object.assign(pendingSetup, settings[field]);
 		await showSelf(interaction, setupId, pendingSetup);
 	} else if (group === `affiliate`) {
 		const settings = {
@@ -286,7 +282,7 @@ async function handleSelect(interaction, setupId, pendingSetup, group, field) {
 			role: { affiliateRoleId: selectedId },
 		};
 
-		updateSetting(pendingSetup, settings[field]);
+		Object.assign(pendingSetup, settings[field]);
 		await showAffiliate(interaction, setupId, pendingSetup);
 	}
 }
@@ -295,7 +291,7 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName(`setup`)
 		.setDescription(`Configure channel and role settings.`)
-		.setDefaultMemberPermissions(0) // Restrict to admins or bot owner,
+		.setDefaultMemberPermissions(0)
 		.setContexts(InteractionContextType.Guild),
 
 	async execute(interaction) {

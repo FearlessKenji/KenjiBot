@@ -35,8 +35,9 @@ Edit `blank_config.json` in the `config` folder and rename it to `config.json`.
 - guildId - Copy and paste your Discord server ID here. This is for private guild-access commands.
 - twitchCron - Checks Twitch for specified live channels every minute by default.
 - kickCron - Checks Kick for specified live channels every minute by default.
+- birthdayCron - Checks whether any configured server has reached its local birthday posting hour. Runs hourly by default.
 - statusCron - Changes bot status every 10 minutes by default. Can be modified in ready.js in the events folder.
-- authCron - Updates Twitch and Kick auth tokens every hour by default. Generated tokens are stored in auth/tokens.json.
+- authCron - Updates Twitch and Kick auth tokens every hour by default. Generated tokens are cached in memory while the bot is running.
 
 All of these fields are required.
 
@@ -100,6 +101,32 @@ All of these options are available at once. Each selection updates the panel, bu
 Use `/stream list` to check which streamers are configured, whether they are labeled as self or affiliate, and which notification types are enabled.
 
 Use `/stream remove name: streamername` to remove a streamer from the database.
+
+## Birthdays
+Use `/birthday set` to store your birthday for the current server. The bot accepts flexible month/day input such as:
+```console
+/birthday set date: 1/1
+/birthday set date: January 1
+```
+
+Use `/birthday view user: @member` to view a member's stored birthday.
+
+Use `/birthday list month: January` to list birthdays for a month. Month input accepts names, abbreviations, or numbers, and the command provides month autocomplete.
+
+Use `/birthday remove` to remove your stored birthday from the current server.
+
+Administrators can configure automatic birthday posts with:
+```console
+/birthday setup channel: #birthdays week_role: @Staff day_role: @Birthday hour: 12pm timezone: America/New_York
+```
+
+- channel - Where birthday reminders and birthday-day posts are sent.
+- week_role - Optional role to ping one week before a birthday.
+- day_role - Optional role to ping on the birthday.
+- hour - Whole-hour local posting time such as `12pm`, `noon`, or `13`.
+- timezone - IANA timezone used for the server's birthday schedule.
+
+The bot posts one reminder seven days before a birthday and one birthday message on the day itself. February 29 birthdays are celebrated on February 28 during non-leap years.
 
 ## Reaction roles
 Use `/reaction roles add` to create a reaction-role panel. The setup flow asks for a target channel and title. You can optionally provide a message for the embed body; otherwise the bot uses a default message. The command then opens a public editor where you can add assignable roles.

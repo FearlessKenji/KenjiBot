@@ -75,10 +75,6 @@ function buildAddComponents(addId) {
 	];
 }
 
-function selectedYes(interaction) {
-	return interaction.values[0] === `yes`;
-}
-
 function buildPendingAdd(interaction) {
 	return {
 		channelName: interaction.options.getString(`name`).toLowerCase().trim(),
@@ -232,11 +228,11 @@ async function handleAddSelection(interaction, step, addId) {
 	}
 
 	if (step === `twitch`) {
-		pendingAdd.twitchNotif = selectedYes(interaction);
+		pendingAdd.twitchNotif = interaction.values[0] === `yes`;
 	} else if (step === `kick`) {
-		pendingAdd.kickNotif = selectedYes(interaction);
+		pendingAdd.kickNotif = interaction.values[0] === `yes`;
 	} else if (step === `self`) {
-		pendingAdd.isSelf = selectedYes(interaction);
+		pendingAdd.isSelf = interaction.values[0] === `yes`;
 	}
 
 	pendingAdd.needsSelections = false;
@@ -300,7 +296,7 @@ module.exports = {
 				.setName(`list`)
 				.setDescription(`List all channels for this server and their configurations.`),
 		)
-		.setDefaultMemberPermissions(0) // Restrict to admins or bot owner,
+		.setDefaultMemberPermissions(0)
 		.setContexts(InteractionContextType.Guild),
 
 	async execute(interaction) {

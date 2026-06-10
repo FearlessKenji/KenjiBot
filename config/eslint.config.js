@@ -23,12 +23,11 @@ module.exports = [
 		},
 
 		rules: {
-			// =========================================================
-			// CORE SAFETY (prevent real runtime bugs)
-			// =========================================================
-
+			// Rules
+			'default-case': `warn`,
 			'eqeqeq': [`error`, `always`],
 			'no-async-promise-executor': `error`,
+			'no-duplicate-imports': `error`,
 			'no-else-return': `error`,
 			'no-empty-function': `error`,
 			'no-eval': `error`,
@@ -39,23 +38,19 @@ module.exports = [
 			'no-promise-executor-return': `error`,
 			'no-return-await': `error`,
 			'no-undef': `error`,
+			'no-unneeded-ternary': `error`,
 			'no-unused-vars': [`error`, { argsIgnorePattern: `^_` }],
+			'no-useless-catch': `error`,
 			'no-useless-return': `error`,
 			'no-var': `error`,
 			'prefer-const': `error`,
 			'require-atomic-updates': `error`,
 
-			// =========================================================
-			// DEBUGGING CONTROL
-			// =========================================================
-
+			// Debugging control
 			'no-console': `off`,
 			'no-shadow': [`error`, { allow: [`err`, `resolve`, `reject`] }],
 
-			// =========================================================
-			// STYLE ENFORCEMENT (CONSISTENT CODE BASE)
-			// =========================================================
-
+			// Style
 			'arrow-spacing': [`error`, { before: true, after: true }],
 			'brace-style': [`error`, `1tbs`, { allowSingleLine: true }],
 			'comma-dangle': [`error`, `always-multiline`],

@@ -54,7 +54,7 @@ module.exports = (sequelize, DataTypes) => {
 		indexes: [
 			{
 				unique: true,
-				fields: [`channelName`, `guildId`], // Composite unique index
+				fields: [`channelName`, `guildId`],
 				name: `compositeIndex`,
 			},
 		],

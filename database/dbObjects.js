@@ -10,9 +10,10 @@ const sequelize = new Sequelize(`database`, `username`, `password`, {
 	storage: dbPath,
 });
 
-// =======================
 // Models
-// =======================
+// Every model is registered against the shared Sequelize instance before any
+// associations are declared. This keeps sequelize.sync and schema reconciliation
+// aware of the full table set on startup.
 const Servers = require(`./models/servers.js`)(sequelize, Sequelize.DataTypes);
 const Channels = require(`./models/channels.js`)(sequelize, Sequelize.DataTypes);
 const SchemaMigrations = require(`./models/schemaMigrations.js`)(
@@ -29,11 +30,18 @@ const ReactionRoleItems = require(`./models/reactionRoleItems.js`)(
 	sequelize,
 	Sequelize.DataTypes,
 );
+const BirthdayUsers = require(`./models/birthdayUsers.js`)(
+	sequelize,
+	Sequelize.DataTypes,
+);
+const BirthdayConfigs = require(`./models/birthdayConfigs.js`)(
+	sequelize,
+	Sequelize.DataTypes,
+);
 
-// =======================
 // Live Notification Associations
-// =======================
-
+// Channel rows are tied to a server record, but server deletion is restricted so
+// notification settings cannot disappear through an accidental cascading delete.
 Channels.belongsTo(Servers, {
 	foreignKey: `guildId`,
 	targetKey: `guildId`,
@@ -48,11 +56,9 @@ Servers.hasMany(Channels, {
 	onUpdate: `CASCADE`,
 });
 
-// =======================
 // Reaction Role Associations
-// =======================
-
-// One guild has many reaction role messages
+// Reaction-role panels own their role items. Deleting a panel cascades to its
+// items, while server deletion remains restricted like the notification tables.
 Servers.hasMany(ReactionRoleMessages, {
 	foreignKey: `guildId`,
 	sourceKey: `guildId`,
@@ -67,7 +73,6 @@ ReactionRoleMessages.belongsTo(Servers, {
 	onUpdate: `CASCADE`,
 });
 
-// One reaction role message has many role items
 ReactionRoleMessages.hasMany(ReactionRoleItems, {
 	foreignKey: `reactionRoleMessageId`,
 	sourceKey: `id`,
@@ -82,6 +87,37 @@ ReactionRoleItems.belongsTo(ReactionRoleMessages, {
 	onUpdate: `CASCADE`,
 });
 
+// Birthday Associations
+// Birthday user rows and posting config are guild-scoped. They intentionally
+// share the same restricted server relationship used by the other guild data.
+Servers.hasMany(BirthdayUsers, {
+	foreignKey: `guildId`,
+	sourceKey: `guildId`,
+	onDelete: `RESTRICT`,
+	onUpdate: `CASCADE`,
+});
+
+BirthdayUsers.belongsTo(Servers, {
+	foreignKey: `guildId`,
+	targetKey: `guildId`,
+	onDelete: `RESTRICT`,
+	onUpdate: `CASCADE`,
+});
+
+Servers.hasOne(BirthdayConfigs, {
+	foreignKey: `guildId`,
+	sourceKey: `guildId`,
+	onDelete: `RESTRICT`,
+	onUpdate: `CASCADE`,
+});
+
+BirthdayConfigs.belongsTo(Servers, {
+	foreignKey: `guildId`,
+	targetKey: `guildId`,
+	onDelete: `RESTRICT`,
+	onUpdate: `CASCADE`,
+});
+
 module.exports = {
 	sequelize,
 	Servers,
@@ -89,4 +125,6 @@ module.exports = {
 	SchemaMigrations,
 	ReactionRoleMessages,
 	ReactionRoleItems,
+	BirthdayUsers,
+	BirthdayConfigs,
 };

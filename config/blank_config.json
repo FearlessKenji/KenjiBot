@@ -9,6 +9,7 @@
 	"guildId": "(REQUIRED)",
 	"twitchCron": "*/1 * * * *",
 	"kickCron": "*/1 * * * *",
+	"birthdayCron": "0 * * * *",
 	"statusCron": "*/10 * * * *",
 	"authCron": "0 * * * *"
 }

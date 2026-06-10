@@ -7,16 +7,12 @@ const { getCommandFiles, loadCommand } = require(`./utils/commandLoader.js`);
 const path = require(`node:path`);
 const fs = require(`node:fs`);
 
-// =======================
-// Initialize Crash Handlers
-// =======================
-
+// Start crash and log-maintenance handlers before creating the Discord client so
+// startup failures and early runtime errors are written through the normal logger.
 initCrashHandlers();
 startLogCleanup({ runImmediately: true });
 
-// =======================
-// Create Discord client
-// =======================
+// Discord client
 const client = new Client({
 	intents: [
 		GatewayIntentBits.Guilds,
@@ -34,9 +30,8 @@ const client = new Client({
 
 client.cronJobs = createCronJobs(client);
 
-// =======================
-// Command handler
-// =======================
+// Load command modules once at startup. The deploy scripts register slash command
+// metadata with Discord; this collection is the runtime dispatch table.
 client.commands = new Collection();
 
 for (const filePath of getCommandFiles()) {
@@ -48,9 +43,8 @@ for (const filePath of getCommandFiles()) {
 	}
 }
 
-// =======================
-// Event handler
-// =======================
+// Register every event module in the events folder. Event files decide whether
+// they should be attached with client.once or client.on.
 const eventsPath = path.join(__dirname, `events`);
 for (const file of fs.readdirSync(eventsPath).filter(f => f.endsWith(`.js`))) {
 	const event = require(path.join(eventsPath, file));
@@ -61,14 +55,11 @@ for (const file of fs.readdirSync(eventsPath).filter(f => f.endsWith(`.js`))) {
 	}
 }
 
-// =======================
 // Login
-// =======================
 client.login(process.env.TOKEN);
 
-// =======================
-// Shutdown logic
-// =======================
+// Stop cron work before destroying the Discord client so background jobs do not
+// keep trying to use a client that is already shutting down.
 function shutdown() {
 	info(`Stopping bot...`);
 
@@ -86,7 +77,7 @@ function shutdown() {
 	process.exit(0);
 }
 
-// Listen for termination signals
-process.on(`SIGINT`, shutdown); // Ctrl+C
-process.on(`SIGTERM`, shutdown); // Termination signal
-process.on(`SIGUSR2`, shutdown); // PM2 restart
+// Termination signals
+process.on(`SIGINT`, shutdown);
+process.on(`SIGTERM`, shutdown);
+process.on(`SIGUSR2`, shutdown);

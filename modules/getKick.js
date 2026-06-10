@@ -53,7 +53,7 @@ function buildOfflineEmbed(existingEmbed, vod) {
 	return embed;
 }
 
-async function updateOfflineKickMessage(chan, server, guild, client) {
+async function updateVodMessage(chan, server, guild, client) {
 	if (!chan.kickMessageId || !chan.kickIsLive || !chan.kickNotif) {
 		return;
 	}
@@ -136,7 +136,6 @@ async function getKick(client) {
 
 	for (const server of servers) {
 		const guild = client.guilds.cache.get(server.guildId);
-		// debug(`Checking channels for ${guild?.name ?? 'Unknown guild'} (ID: ${server.guildId})`);
 
 		// O(1) lookup instead of filtering entire dataset per server
 		const serverChannels = channelsByGuild.get(server.guildId) || [];
@@ -157,7 +156,7 @@ async function getKick(client) {
 
 			if (!streamInfo?.stream?.is_live) {
 				if (chan.kickIsLive) {
-					await updateOfflineKickMessage(chan, server, guild, client);
+					await updateVodMessage(chan, server, guild, client);
 				}
 
 				return;

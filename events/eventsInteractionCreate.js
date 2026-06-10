@@ -1,32 +1,19 @@
 const { Events, MessageFlags } = require(`discord.js`);
 const { warn, error } = require(`../utils/writeLog.js`);
-const { TIMEZONES } = require(`../utils/timezones.js`);
+const { autocompletes } = require(`../utils/autocompletes.js`);
 
 module.exports = {
 	name: Events.InteractionCreate,
 
 	async execute(interaction) {
 
-		// =========================
-		// AUTOCOMPLETE HANDLER
-		// =========================
+		// Autocomplete interactions are handled before command dispatch because
+		// Discord expects an autocomplete response, not a normal slash reply.
 		if (interaction.isAutocomplete()) {
-			const focused = interaction.options.getFocused().toLowerCase();
-
-			const results = TIMEZONES
-				.filter(tz => tz.label.toLowerCase().includes(focused))
-				.slice(0, 25)
-				.map(tz => ({
-					name: tz.label,
-					value: tz.value,
-				}));
-
-			return interaction.respond(results);
+			return interaction.respond(autocompletes(interaction));
 		}
 
-		// =========================
-		// SLASH COMMANDS
-		// =========================
+		// Slash commands
 		if (interaction.isChatInputCommand()) {
 			const command = interaction.client.commands.get(interaction.commandName);
 
@@ -44,9 +31,7 @@ module.exports = {
 			return;
 		}
 
-		// =========================
-		// MESSAGE CONTEXT MENUS
-		// =========================
+		// Message context menus
 		if (interaction.isMessageContextMenuCommand()) {
 			const command = interaction.client.commands.get(interaction.commandName);
 
@@ -64,9 +49,8 @@ module.exports = {
 			return;
 		}
 
-		// =========================
-		// COMPONENTS (BUTTONS, MENUS)
-		// =========================
+		// Message components route by the first customId segment, which matches the
+		// command name that created the buttons or select menus.
 		if (
 			interaction.isButton() ||
 			interaction.isStringSelectMenu() ||

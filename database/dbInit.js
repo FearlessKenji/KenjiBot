@@ -8,7 +8,9 @@ async function dbInit() {
 	const dbPath = path.resolve(`database/database.sqlite`);
 	const exists = fs.existsSync(dbPath);
 
-	await sequelize.sync(); // Creates missing tables without forcing a full database rebuild.
+	// sequelize.sync creates tables for newly added models without forcing a full
+	// rebuild. The migration pass below handles schema repair and cleanup.
+	await sequelize.sync();
 	await runMigrations();
 
 	info(

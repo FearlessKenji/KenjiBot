@@ -54,7 +54,7 @@ function buildOfflineEmbed(existingEmbed, vod) {
 	return embed;
 }
 
-async function updateOfflineTwitchMessage(chan, server, guild, client) {
+async function updateVodMessage(chan, server, guild, client) {
 	const twitchAuthToken = authTokens.getAuthTokens().twitchAuthToken;
 
 	if (!chan.twitchMessageId || !chan.twitchStreamId || !chan.twitchNotif) {
@@ -151,9 +151,6 @@ async function getTwitch(client) {
 
 	for (const server of servers) {
 		const guild = client.guilds.cache.get(server.guildId);
-		// debug(`Checking channels for ${guild?.name ?? 'Unknown guild'} (ID: ${server.guildId})`);
-
-		// O(1) lookup instead of filtering entire dataset per server
 		const serverChannels = channelsByGuild.get(server.guildId) || [];
 
 		// Process each channel in the server
@@ -168,7 +165,7 @@ async function getTwitch(client) {
 			// Skip if offline or notifications disabled
 			if (!streamInfo || !chan.twitchNotif) {
 				if (!streamInfo) {
-					await updateOfflineTwitchMessage(chan, server, guild, client);
+					await updateVodMessage(chan, server, guild, client);
 				}
 
 				return;

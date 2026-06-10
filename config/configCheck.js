@@ -24,8 +24,7 @@ function fatal(message) {
 	pauseAndExit(1);
 }
 
-/* ---------- helpers ---------- */
-
+// Helpers
 function isEmpty(value) {
 	return (
 		value === undefined ||
@@ -34,8 +33,8 @@ function isEmpty(value) {
 	);
 }
 
-/* ---------- .env validation ---------- */
-
+// Environment validation
+// Secrets stay in .env so they are not committed with the rest of the bot config.
 const REQUIRED_ENV = [
 	`TOKEN`,
 	`twitchClientId`,
@@ -53,8 +52,7 @@ if (missingEnv.length) {
 	);
 }
 
-/* ---------- config existence ---------- */
-
+// Config existence
 if (!fs.existsSync(configPath)) {
 	fatal(
 		`Missing config.json\n` +
@@ -62,8 +60,7 @@ if (!fs.existsSync(configPath)) {
 	);
 }
 
-/* ---------- config parsing ---------- */
-
+// Config parsing
 let config;
 
 try {
@@ -75,8 +72,9 @@ try {
 	);
 }
 
-/* ---------- config validation ---------- */
-
+// Config validation
+// Cron expressions are required explicitly instead of silently defaulting, because
+// changing a scheduler should be an intentional config edit.
 const REQUIRED_STRICT = [
 	`botOwner`,
 	`clientId`,
@@ -86,6 +84,7 @@ const REQUIRED_STRICT = [
 const REQUIRED_WITH_DEFAULTS = [
 	`twitchCron`,
 	`kickCron`,
+	`birthdayCron`,
 	`statusCron`,
 	`authCron`,
 ];
@@ -111,6 +110,5 @@ if (missingStrict.length || missingDefaults.length) {
 
 info(`Configuration files validated.`);
 
-/* ---------- export ---------- */
-
+// Export validated config
 module.exports = config;

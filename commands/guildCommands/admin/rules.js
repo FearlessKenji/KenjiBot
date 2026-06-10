@@ -11,7 +11,7 @@ module.exports = {
 				.setRequired(true)
 				.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement),
 		)
-		.setDefaultMemberPermissions(0), // Restrict to admins or bot owner,
+		.setDefaultMemberPermissions(0),
 
 	async execute(interaction) {
 		const channel = interaction.options.getChannel(`channel`);

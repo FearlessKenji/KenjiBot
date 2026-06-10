@@ -5,6 +5,7 @@ const config = require(`../config/config.json`);
 const { ActivityType } = require(`discord.js`);
 const { updateKickAuth } = require(`../auth/updateKickAuth.js`);
 const { updateTwitchAuth } = require(`../auth/updateTwitchAuth.js`);
+const { checkBirthdays } = require(`./birthdays.js`);
 
 module.exports = (client) => {
 	let activityIndex = -1;
@@ -16,6 +17,10 @@ module.exports = (client) => {
 
 		Kick: new CronJob(config.kickCron, async () => {
 			await getKick(client);
+		}),
+
+		Birthdays: new CronJob(config.birthdayCron, async () => {
+			await checkBirthdays(client);
 		}),
 
 		Status: new CronJob(config.statusCron, () => {
