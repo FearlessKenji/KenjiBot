@@ -18,7 +18,7 @@ module.exports = (client) => {
 			await getKick(client);
 		}),
 
-		Birthdays: new CronJob(config.birthdayCron, async () => {
+		Birthday: new CronJob(config.birthdayCron, async () => {
 			await checkBirthdays(client);
 		}),
 
