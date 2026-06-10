@@ -1,27 +1,15 @@
 const path = require(`node:path`);
 const fs = require(`node:fs`);
+require(`dotenv/config`);
 const { info, error } = require(`../utils/writeLog.js`);
 
-const isPM2 = process.env.pm_id !== undefined;
 const configPath = path.join(process.cwd(), `config`, `config.json`);
 
 info(`Validating config files...`);
 
-function pauseAndExit(code = 1) {
-	if (isPM2) {
-		process.exit(code);
-	}
-
-	process.stdin.resume();
-	console.log(`\nPress Enter to exit...`);
-	process.stdin.once(`data`, () => {
-		process.exit(code);
-	});
-}
-
 function fatal(message) {
 	error(`[FATAL] ${message}`);
-	pauseAndExit(1);
+	process.exit(1);
 }
 
 // Helpers
