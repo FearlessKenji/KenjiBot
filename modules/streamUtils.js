@@ -2,6 +2,52 @@ const { EmbedBuilder } = require(`discord.js`);
 const { Servers, Channels } = require(`../database/dbObjects.js`);
 const { error } = require(`../utils/writeLog.js`);
 
+const STREAM_TIME_ZONE = `America/New_York`;
+
+const streamTimeFormatter = new Intl.DateTimeFormat(`en-US`, {
+	day: `numeric`,
+	hour: `numeric`,
+	minute: `2-digit`,
+	month: `numeric`,
+	timeZone: STREAM_TIME_ZONE,
+	timeZoneName: `short`,
+	year: `numeric`,
+});
+
+function formatStreamTime(input) {
+	const date = input instanceof Date ? input : new Date(input);
+
+	if (Number.isNaN(date.getTime())) {
+		return `unknown time`;
+	}
+
+	const parts = Object.fromEntries(
+		streamTimeFormatter
+			.formatToParts(date)
+			.filter(part => part.type !== `literal`)
+			.map(part => [part.type, part.value]),
+	);
+
+	return `${parts.month}/${parts.day}/${parts.year}, ${parts.hour}:${parts.minute} ${parts.dayPeriod} ${parts.timeZoneName}`;
+}
+
+function liveFooter(startedAt) {
+	return `Started ${formatStreamTime(startedAt)}. Last edited ${formatStreamTime(new Date())}.`;
+}
+
+function offlineFooter(existingEmbed) {
+	const endTime = formatStreamTime(new Date());
+
+	if (!existingEmbed?.footer?.text) {
+		return `Stream ended ${endTime}.`;
+	}
+
+	return existingEmbed.footer.text.replace(
+		/(?:Last edited|Stream ended) .*\.$/,
+		`Stream ended ${endTime}.`,
+	);
+}
+
 function groupChannels(channels) {
 	const channelsByGuild = new Map();
 
@@ -92,8 +138,6 @@ function liveEmbed({
 	startedAt,
 	discordInline = false,
 }) {
-	const startTime = new Date(startedAt).toLocaleString();
-	const editTime = new Date().toLocaleString();
 	const fields = [
 		{
 			name: `Playing`,
@@ -125,7 +169,7 @@ function liveEmbed({
 		.setURL(url)
 		.setColor(color)
 		.setFields(fields)
-		.setFooter({ text: `Started ${startTime}. Last edited ${editTime}.` });
+		.setFooter({ text: liveFooter(startedAt) });
 
 	if (thumbnail) {
 		embed.setThumbnail(thumbnail);
@@ -164,9 +208,7 @@ function offlineEmbed({ provider, existingEmbed, vodUrl, imageUrl }) {
 	const title = existingEmbed?.title ?
 		existingEmbed.title.replace(`is now live`, `was live`) :
 		`${provider} stream was live`;
-	const footerText = existingEmbed?.footer?.text ?
-		existingEmbed.footer.text.replace(`Last edited`, `Stream ended`) :
-		`Stream ended ${new Date().toLocaleString()}.`;
+	const footerText = offlineFooter(existingEmbed);
 
 	embed
 		.setTitle(title)
