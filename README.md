@@ -24,22 +24,22 @@ This Discord bot uses [The Official Twitch API](https://dev.twitch.tv/docs/api/)
 
 | Command | Description |
 | --- | --- |
-| Streams |
+| | |
 | `/setup` | Configure stream notification channels and roles. |
 | `/stream add` | Add or edit a Twitch/Kick streamer entry. |
 | `/stream list` | List streamers configured for the server. |
 | `/stream remove` | Remove a streamer entry. |
-| Birthdays |
+| | |
 | `/birthday set` | Store your birthday for the current server. Numeric dates use American `MM/DD` format, such as `12/25`. |
 | `/birthday view` | View a member's stored birthday. |
 | `/birthday list` | List birthdays for a month, grouped by day. |
 | `/birthday remove` | Remove your stored birthday from the current server. |
 | `/birthday setup` | Configure birthday channels, roles, posting hour, and timezone. |
-| Reaction Roles |
+| | |
 | `/reaction roles add` | Create a reaction-role panel. |
 | `Edit Reaction Roles` | Message context menu to edit an existing reaction-role panel. |
 | `Convert to Reaction Roles` | Message context menu to convert an existing message into a reaction-role panel. |
-| Miscellanious |
+| | |
 | `/roll` | Roll dice using RPG notation. |
 | `/timestamp` | Convert a date and time into Discord timestamp tags. |
 
