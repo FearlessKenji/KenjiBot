@@ -4,12 +4,13 @@ require(`dotenv/config`);
 const { info, error } = require(`../utils/writeLog.js`);
 
 const configPath = path.join(process.cwd(), `config`, `config.json`);
+const CONFIG_EXIT_CODE = 78;
 
 info(`Validating config files...`);
 
 function fatal(message) {
 	error(`[FATAL] ${message}`);
-	process.exit(1);
+	process.exit(CONFIG_EXIT_CODE);
 }
 
 // Helpers
