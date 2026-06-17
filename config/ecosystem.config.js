@@ -2,7 +2,7 @@ module.exports = {
 	apps: [
 		{
 			cwd: `./`,
-			name: `KenjiBot`,
+			name: `Hachi`,
 			script: `index.js`,
 			exec_mode: `fork`,
 			instances: 1,
@@ -14,7 +14,7 @@ module.exports = {
 			restart_delay: 60000,
 
 			env: {
-				NODE_ENV: `development`,
+				NODE_ENV: `production`,
 			},
 			log_date_format: `MM-DD-YYYY HH:mm`,
 		},

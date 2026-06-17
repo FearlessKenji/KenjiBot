@@ -7,7 +7,7 @@ node_modules/
 
 # Generated launcher binaries
 *.exe
-!KenjiBot.exe
+!Hachi.exe
 
 # Local launcher build inputs
 run-bot.ps1

@@ -7,7 +7,7 @@ async function getLatest(channelName) {
 			{
 				headers: {
 					'Accept': `application/json`,
-					'User-Agent': `KenjiBot`,
+					'User-Agent': `Hachi`,
 				},
 			});
 

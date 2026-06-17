@@ -1,7 +1,7 @@
 require(`dotenv/config`);
 require(`./config/configCheck.js`);
 const { Client, Collection, GatewayIntentBits, Partials } = require(`discord.js`);
-const { info, warn, initCrashHandlers, startLogCleanup, stopLogCleanup } = require(`./utils/writeLog.js`);
+const { info, warn, error, initCrashHandlers, startLogCleanup, stopLogCleanup } = require(`./utils/writeLog.js`);
 const createCronJobs = require(`./utils/crons.js`);
 const { getCommandFiles, loadCommand } = require(`./utils/commandLoader.js`);
 const path = require(`node:path`);
@@ -56,7 +56,10 @@ for (const file of fs.readdirSync(eventsPath).filter(f => f.endsWith(`.js`))) {
 }
 
 // Login
-client.login(process.env.TOKEN);
+client.login(process.env.TOKEN).catch(err => {
+	error(`Failed to log in to Discord.`, err);
+	process.exit(1);
+});
 
 // Stop cron work before destroying the Discord client so background jobs do not
 // keep trying to use a client that is already shutting down.

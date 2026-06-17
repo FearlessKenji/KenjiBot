@@ -46,7 +46,7 @@ if (missingEnv.length) {
 if (!fs.existsSync(configPath)) {
 	fatal(
 		`Missing config.json\n` +
-		`Run KenjiBot.exe for guided setup, or copy blank.json to config/config.json and fill in required fields.`,
+		`Run Hachi.exe for guided setup, or copy blank.json to config/config.json and fill in required fields.`,
 	);
 }
 

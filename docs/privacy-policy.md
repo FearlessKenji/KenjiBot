@@ -1,24 +1,24 @@
-# Privacy Policy for KenjiBot
+# Privacy Policy for Hachi
 
 Last updated: June 12, 2026
 
-KenjiBot is a Discord bot operated by FearlessKenji in North Carolina, United States. This Privacy Policy explains what information KenjiBot collects, how it is used, and how you can request deletion or ask questions.
+Hachi is a Discord bot operated by FearlessKenji in North Carolina, United States. This Privacy Policy explains what information Hachi collects, how it is used, and how you can request deletion or ask questions.
 
-By adding KenjiBot to a Discord server or using KenjiBot commands, you understand that KenjiBot processes information through Discord and through the services used to host documentation, support links, and bot-related pages.
+By adding Hachi to a Discord server or using Hachi commands, you understand that Hachi processes information through Discord and through the services used to host documentation, support links, and bot-related pages.
 
-## What KenjiBot Does
+## What Hachi Does
 
-KenjiBot provides Discord bot features for Twitch and Kick live notifications, streamer configuration, birthday reminders, reaction roles, and related server utilities.
+Hachi provides Discord bot features for Twitch and Kick live notifications, streamer configuration, birthday reminders, reaction roles, and related server utilities.
 
-KenjiBot uses Discord APIs to receive command interactions, component interactions, reactions, guild events, and other Discord events needed for enabled features.
+Hachi uses Discord APIs to receive command interactions, component interactions, reactions, guild events, and other Discord events needed for enabled features.
 
-## Information KenjiBot Collects
+## Information Hachi Collects
 
-KenjiBot only collects information needed to provide and maintain the bot.
+Hachi only collects information needed to provide and maintain the bot.
 
 ### Discord Server and Configuration Information
 
-When KenjiBot is added to or configured in a Discord server, KenjiBot may store:
+When Hachi is added to or configured in a Discord server, Hachi may store:
 
 - Discord server ID
 - Discord channel IDs
@@ -33,7 +33,7 @@ This information is used to keep server-specific features working and to post bo
 
 ### Stream Notification Information
 
-When server administrators configure Twitch or Kick notifications, KenjiBot may store:
+When server administrators configure Twitch or Kick notifications, Hachi may store:
 
 - Twitch or Kick channel names
 - Whether Twitch notifications are enabled
@@ -47,18 +47,18 @@ This information is used to check whether configured streamers are live and to p
 
 ### Birthday Information
 
-If you use KenjiBot's birthday features, KenjiBot may store:
+If you use Hachi's birthday features, Hachi may store:
 
 - Discord user ID
 - Discord server ID
 - Birth month
 - Birth day
 
-KenjiBot does not ask for or store birth year. Birthday information is used to show birthdays in the server and to post configured birthday reminders.
+Hachi does not ask for or store birth year. Birthday information is used to show birthdays in the server and to post configured birthday reminders.
 
 ### Reaction Role Information
 
-When reaction-role features are used, KenjiBot may store:
+When reaction-role features are used, Hachi may store:
 
 - Discord server ID
 - Discord channel ID
@@ -73,29 +73,29 @@ This information is used to create, edit, maintain, and clean up reaction-role p
 
 ### Command and Interaction Data
 
-When you use KenjiBot commands or interact with bot buttons, menus, context menus, or reactions, Discord sends KenjiBot the command name, command options, user context, server context, and related interaction data needed to respond.
+When you use Hachi commands or interact with bot buttons, menus, context menus, or reactions, Discord sends Hachi the command name, command options, user context, server context, and related interaction data needed to respond.
 
-KenjiBot uses this data to run commands, update configuration, respond to interactions, and apply roles or feature settings. KenjiBot does not intentionally store ordinary command interaction data after responding unless the information is part of a configured feature, appears in logs, or is retained by Discord.
+Hachi uses this data to run commands, update configuration, respond to interactions, and apply roles or feature settings. Hachi does not intentionally store ordinary command interaction data after responding unless the information is part of a configured feature, appears in logs, or is retained by Discord.
 
 ### Message Content
 
-KenjiBot has the Discord Message Content intent enabled. Message content is used only for features that require it, such as converting an administrator-selected message into a reaction-role panel.
+Hachi has the Discord Message Content intent enabled. Message content is used only for features that require it, such as converting an administrator-selected message into a reaction-role panel.
 
-KenjiBot does not use message content to build user profiles, run advertising, sell data, or train machine learning or AI models.
+Hachi does not use message content to build user profiles, run advertising, sell data, or train machine learning or AI models.
 
 ### Logs
 
-KenjiBot may create operational logs that include timestamps, server names, server IDs, owner usernames, Discord IDs, deleted panel cleanup events, command errors, API errors, crash reports, and stack traces.
+Hachi may create operational logs that include timestamps, server names, server IDs, owner usernames, Discord IDs, deleted panel cleanup events, command errors, API errors, crash reports, and stack traces.
 
 Logs are used to diagnose issues, maintain the bot, investigate abuse, and protect reliability.
 
 ### GitHub Pages Site Data
 
-If you visit KenjiBot's GitHub Pages site, GitHub may log visitor IP addresses and other technical data for security and service operation. This data is handled by GitHub under GitHub's own privacy practices.
+If you visit Hachi's GitHub Pages site, GitHub may log visitor IP addresses and other technical data for security and service operation. This data is handled by GitHub under GitHub's own privacy practices.
 
-## Information KenjiBot Does Not Collect
+## Information Hachi Does Not Collect
 
-KenjiBot does not intentionally collect:
+Hachi does not intentionally collect:
 
 - Payment information
 - Passwords
@@ -107,11 +107,11 @@ KenjiBot does not intentionally collect:
 - Cookies or analytics through the bot itself
 - Sensitive personal information unless a user or administrator chooses to put it into bot-managed content
 
-Do not submit private, confidential, or sensitive information through KenjiBot commands or configuration fields.
+Do not submit private, confidential, or sensitive information through Hachi commands or configuration fields.
 
 ## How Information Is Used
 
-KenjiBot uses collected information to:
+Hachi uses collected information to:
 
 - Provide Discord bot commands and responses
 - Send Twitch and Kick live notifications
@@ -124,26 +124,26 @@ KenjiBot uses collected information to:
 - Diagnose errors and operational issues
 - Enforce applicable terms, protect users, and prevent abuse
 
-KenjiBot does not sell personal information.
+Hachi does not sell personal information.
 
 ## How Information Is Shared
 
 Information may be visible or shared in these limited situations:
 
-- With Discord, because KenjiBot operates on Discord's platform
+- With Discord, because Hachi operates on Discord's platform
 - With Twitch or Kick APIs, when checking configured streamer channels and posting live notification information
-- With GitHub, if you visit KenjiBot's GitHub Pages site
+- With GitHub, if you visit Hachi's GitHub Pages site
 - With the bot owner or authorized maintainers for operation, moderation, maintenance, and support
-- When KenjiBot posts information into a Discord server as part of an enabled feature, such as a live notification, birthday post, or reaction-role panel
-- If required to comply with law, protect users, prevent abuse, or defend KenjiBot's rights and security
+- When Hachi posts information into a Discord server as part of an enabled feature, such as a live notification, birthday post, or reaction-role panel
+- If required to comply with law, protect users, prevent abuse, or defend Hachi's rights and security
 
-KenjiBot does not send Discord user birthday records to Twitch or Kick.
+Hachi does not send Discord user birthday records to Twitch or Kick.
 
 ## Data Retention
 
-KenjiBot keeps information only as long as reasonably needed for the purposes described above.
+Hachi keeps information only as long as reasonably needed for the purposes described above.
 
-- Server notification settings are generally kept while KenjiBot remains configured for that server or until removed by an administrator.
+- Server notification settings are generally kept while Hachi remains configured for that server or until removed by an administrator.
 - Streamer entries are kept until an administrator removes them or they are no longer needed.
 - Birthday entries are kept until the user removes them, the server disables the feature, or the data is no longer needed.
 - Reaction-role panel data is kept while the panel is active and may be deleted or disabled when the related Discord message or channel is deleted.
@@ -153,9 +153,9 @@ Some data may also remain in Discord, GitHub, Twitch, Kick, backups, or other th
 
 ## Your Choices and Requests
 
-You can remove some data directly through KenjiBot commands. For example, you can use the birthday remove command to delete your stored birthday for a server. Server administrators can remove configured streamers, update notification settings, and manage reaction-role panels.
+You can remove some data directly through Hachi commands. For example, you can use the birthday remove command to delete your stored birthday for a server. Server administrators can remove configured streamers, update notification settings, and manage reaction-role panels.
 
-Server owners or administrators may remove KenjiBot from a Discord server at any time. Removing KenjiBot stops new server-related processing for that server, but prior logs or records may still be retained where reasonably necessary.
+Server owners or administrators may remove Hachi from a Discord server at any time. Removing Hachi stops new server-related processing for that server, but prior logs or records may still be retained where reasonably necessary.
 
 You may request access, correction, or deletion of information associated with you or your server by contacting FearlessKenji. We may need enough information to verify the Discord user ID, server ID, and request involved. Some information may be retained if required for security, abuse prevention, legal compliance, dispute resolution, backups, or legitimate operation of the bot.
 
@@ -165,29 +165,29 @@ To make a request, contact FearlessKenji by email:
 
 ## California Privacy Notice
 
-California privacy laws, including the California Consumer Privacy Act as amended by the California Privacy Rights Act, may provide California residents with rights to know, access, correct, delete, and limit certain uses of personal information, depending on whether those laws apply to KenjiBot or its operator.
+California privacy laws, including the California Consumer Privacy Act as amended by the California Privacy Rights Act, may provide California residents with rights to know, access, correct, delete, and limit certain uses of personal information, depending on whether those laws apply to Hachi or its operator.
 
-KenjiBot does not sell personal information and does not share personal information for cross-context behavioral advertising. KenjiBot also does not knowingly sell or share personal information of users under 16.
+Hachi does not sell personal information and does not share personal information for cross-context behavioral advertising. Hachi also does not knowingly sell or share personal information of users under 16.
 
 If you are a California resident and want to make a privacy request, contact FearlessKenji using the email address above. Requests will be reviewed and answered as required by applicable law.
 
 ## Children's Privacy
 
-KenjiBot is intended for use on Discord and is not directed to children under 13 or to anyone below the minimum age required to use Discord in their country. KenjiBot does not knowingly collect personal information from children in violation of applicable law. If you believe a child has provided personal information to KenjiBot, contact FearlessKenji and reasonable steps will be taken to delete it where required.
+Hachi is intended for use on Discord and is not directed to children under 13 or to anyone below the minimum age required to use Discord in their country. Hachi does not knowingly collect personal information from children in violation of applicable law. If you believe a child has provided personal information to Hachi, contact FearlessKenji and reasonable steps will be taken to delete it where required.
 
 ## Security
 
-Reasonable technical and organizational measures are used to protect KenjiBot data. However, no online service or storage system can be guaranteed to be completely secure.
+Reasonable technical and organizational measures are used to protect Hachi data. However, no online service or storage system can be guaranteed to be completely secure.
 
 ## Third-Party Services
 
-KenjiBot operates through Discord and may use Twitch and Kick APIs for streamer notifications. KenjiBot may also link to or be documented through third-party services such as GitHub Pages.
+Hachi operates through Discord and may use Twitch and Kick APIs for streamer notifications. Hachi may also link to or be documented through third-party services such as GitHub Pages.
 
 Third-party services have their own terms and privacy policies. FearlessKenji is not responsible for third-party content, policies, availability, security, or privacy practices.
 
 ## Changes to This Policy
 
-This Privacy Policy may be updated from time to time. The updated version will be posted on this page with a new "Last updated" date. Continued use of KenjiBot after changes means you accept the updated policy.
+This Privacy Policy may be updated from time to time. The updated version will be posted on this page with a new "Last updated" date. Continued use of Hachi after changes means you accept the updated policy.
 
 ## Contact
 

@@ -16,7 +16,7 @@ This Discord bot uses [The Official Twitch API](https://dev.twitch.tv/docs/api/)
 - Birthday storage, birthday month lists, one-week reminders, birthday-day posts, and RecoCards card buttons
 - Reaction-role panel creation, editing, message conversion, and cleanup when messages or channels are deleted
 - Timestamp and dice rolling utility commands
-- Guided Windows launcher support through `KenjiBot.exe`
+- Guided Windows launcher support through `Hachi.exe`
 
 ## Commands
 
@@ -63,10 +63,10 @@ Global command updates can take time to appear in Discord. Guild commands are de
 ## Installation
 First you will have to download or clone the project.
 ```console
-$ git clone https://github.com/FearlessKenji/KenjiBot
+$ git clone https://github.com/FearlessKenji/Hachi
 ```
 ## Executable
-If you use `KenjiBot.exe`, dependencies are installed automatically and config files are set up during guided installation. Slash commands are also registered.
+If you use `Hachi.exe`, dependencies are installed automatically and config files are set up during guided installation. Slash commands are also registered.
 
 ## Dependencies
 Install the required node packages outlined in package.json with:
@@ -102,7 +102,7 @@ Check [Cron Guru](https://crontab.guru/) for help setting up crons. Crons will a
 `.env` and `config.json` are ignored by Git. Do not commit bot tokens or private IDs you do not want public.
 
 ## Register Slash Commands
-If you use `KenjiBot.exe`, slash commands are registered automatically during startup.
+If you use `Hachi.exe`, slash commands are registered automatically during startup.
 
 If you run the bot manually, register commands with:
 ```console
@@ -117,10 +117,10 @@ The global commands will be available in all servers. The guild commands will on
 
 
 ## Run the bot
-After you update `.env` and `config/config.json`, Windows users can run the executable `KenjiBot.exe`
+After you update `.env` and `config/config.json`, Windows users can run the executable `Hachi.exe`
 
-Keep `KenjiBot.exe` in the project folder so it uses the config files you edited. You can right click and make a shortcut to copy to the desktop.
-The launcher checks for Node.js, Git, and PM2, walks you through missing setup values, installs dependencies, registers slash commands, and starts KenjiBot through PM2.
+Keep `Hachi.exe` in the project folder so it uses the config files you edited. You can right click and make a shortcut to copy to the desktop.
+The launcher checks for Node.js, Git, and PM2, walks you through missing setup values, installs dependencies, registers slash commands, and starts Hachi through PM2.
 If the launcher detects local Git changes, it skips automatic updates so your work is not overwritten.
 
 To run the bot manually, use the command in the same directory as the index.js file:
