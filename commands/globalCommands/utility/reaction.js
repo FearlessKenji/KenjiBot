@@ -65,7 +65,6 @@ function buildPendingPanel(pending) {
 function buildPendingItems(pending) {
 	return pending.roles.map((role, index) => ({
 		category: role.category || null,
-		description: role.description || null,
 		emoji: role.emoji || null,
 		label: role.label,
 		roleId: role.roleId,
@@ -314,7 +313,6 @@ async function buildPendingFromPanel(interaction, panel) {
 	const firstPanel = groupPanels[0] || panel;
 	const roles = items.map(item => ({
 		category: item.category || null,
-		description: item.description || null,
 		emoji: item.emoji || null,
 		label: item.label,
 		roleId: item.roleId,
@@ -392,7 +390,6 @@ async function createPanelChunk(interaction, pending, channel, roles, panelIndex
 			const emoji = role.emoji || getDefaultEmoji(index);
 			const item = await ReactionRoleItems.create({
 				category: role.category || null,
-				description: role.description || null,
 				emoji,
 				guildId: interaction.guild.id,
 				label: role.label,
@@ -552,7 +549,6 @@ async function addPendingRole(interaction, setupId) {
 
 	pending.roles.push({
 		category: null,
-		description: null,
 		emoji: getDefaultEmoji(pending.roles.length % getPanelRoleLimit()),
 		label: role.name,
 		roleId,

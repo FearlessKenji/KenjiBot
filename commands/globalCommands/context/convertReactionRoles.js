@@ -348,7 +348,6 @@ function parseSourceForRoles(sourceText, guild, member) {
 
 		roles.push({
 			category: currentCategory,
-			description: null,
 			emoji: parsedLine.emoji,
 			label: parsedLine.label || role.name,
 			roleId: role.id,

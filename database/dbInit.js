@@ -1,5 +1,5 @@
 const { sequelize } = require(`./dbObjects.js`);
-const { runMigrations } = require(`./migrations.js`);
+const { auditDatabaseStartup } = require(`./dbAudit.js`);
 const { info } = require(`../utils/writeLog.js`);
 const path = require(`node:path`);
 const fs = require(`node:fs`);
@@ -8,10 +8,10 @@ async function dbInit() {
 	const dbPath = path.resolve(`database/database.sqlite`);
 	const exists = fs.existsSync(dbPath);
 
-	// sequelize.sync creates tables for newly added models without forcing a full
-	// rebuild. The migration pass below handles schema repair and cleanup.
+	// sequelize.sync creates missing tables for a brand-new database. The audit
+	// pass below checks existing databases without changing schema automatically.
 	await sequelize.sync();
-	await runMigrations();
+	await auditDatabaseStartup({ dbPath });
 
 	info(
 		exists ?

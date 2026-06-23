@@ -121,10 +121,9 @@ function buildRoleLines(items) {
 		const prefix = item.emoji ||
 			getDefaultEmoji(fallbackIndex % getPanelRoleLimit()) ||
 			`•`;
-		const description = item.description ? ` - ${item.description}` : ``;
 		const label = item.label || `Role ${item.roleId}`;
 
-		return `${prefix} ${label}${description}`;
+		return `${prefix} ${label}`;
 	});
 }
 

@@ -16,10 +16,6 @@ const sequelize = new Sequelize(`database`, `username`, `password`, {
 // aware of the full table set on startup.
 const Servers = require(`./models/servers.js`)(sequelize, Sequelize.DataTypes);
 const Channels = require(`./models/channels.js`)(sequelize, Sequelize.DataTypes);
-const SchemaMigrations = require(`./models/schemaMigrations.js`)(
-	sequelize,
-	Sequelize.DataTypes,
-);
 
 const ReactionRoleMessages = require(`./models/reactionRoleMessages.js`)(
 	sequelize,
@@ -143,7 +139,6 @@ module.exports = {
 	sequelize,
 	Servers,
 	Channels,
-	SchemaMigrations,
 	ReactionRoleMessages,
 	ReactionRoleItems,
 	RulesVerificationMessages,

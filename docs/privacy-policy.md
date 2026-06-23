@@ -67,7 +67,7 @@ When reaction-role features are used, Hachi may store:
 - Role IDs and role labels
 - Emoji choices
 - Optional image or thumbnail URLs
-- Panel status, ordering, grouping, categories, and descriptions
+- Panel status, ordering, grouping, and categories
 
 This information is used to create, edit, maintain, and clean up reaction-role panels and to add or remove roles when users react.
 

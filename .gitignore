@@ -7,11 +7,19 @@ node_modules/
 
 # Generated launcher binaries
 *.exe
-!Hachi.exe
+!/HachiGen.exe
+
+# Manager generated/local files
+manager/dist*/
+manager/backups/
+manager/data/
+manager/design/
+manager/HachiGen.png
 
 # Local launcher build inputs
 run-bot.ps1
-icon.ico
+/icon.ico
+/Hachi.ico
 
 # PM2 runtime state
 .pm2/
