@@ -850,7 +850,7 @@ h2 {
 	overflow-wrap: anywhere;
 }
 
-/* Shared modal shells. Confirmation prompts all use #confirmModal. */
+/* Shared modal shell used by confirmation and review popups. */
 .modal-backdrop[hidden] {
 	display: none;
 }
@@ -884,14 +884,13 @@ h2 {
 	margin-bottom: 16px;
 }
 
-.sanitize-summary,
-.confirm-summary {
+.modal-summary {
 	margin-bottom: 14px;
 	color: var(--muted);
 	line-height: 1.45;
 }
 
-.confirm-details {
+.modal-details {
 	display: grid;
 	gap: 10px;
 	margin: 0;
@@ -899,7 +898,7 @@ h2 {
 	list-style: none;
 }
 
-.confirm-details li {
+.modal-details li {
 	border: 1px solid rgba(216, 225, 229, 0.22);
 	border-radius: 6px;
 	background: rgba(255, 255, 255, 0.05);
@@ -908,7 +907,7 @@ h2 {
 	line-height: 1.4;
 }
 
-.confirm-details:empty {
+.modal-details:empty {
 	display: none;
 }
 

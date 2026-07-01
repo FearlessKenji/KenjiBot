@@ -186,11 +186,11 @@ Bot tokens, API secrets, local config, logs, and databases are ignored by Git. D
 		</tr>
 		<tr>
 			<td><code>Edit Reaction Roles</code></td>
-			<td>Message context menu to edit an existing reaction-role panel.</td>
+			<td>Message context menu to edit an existing reaction-role panel. Right-click message, then go to App to use.</td>
 		</tr>
 		<tr>
 			<td><code>Convert to Reaction Roles</code></td>
-			<td>Message context menu to convert an existing message into a reaction-role panel.</td>
+			<td>Message context menu to convert an existing message into a reaction-role panel. Right-click message, then go to App to use.</td>
 		</tr>
 		<tr>
 			<th scope="rowgroup" rowspan="2">Profiles</th>

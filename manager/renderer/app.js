@@ -45,7 +45,7 @@ let databaseView = null;
 let databaseViewerLoading = false;
 let databaseSort = { column: "", direction: "" };
 let forceMigrationUnlocked = false;
-let confirmModalResolve = null;
+let confirmationResolve = null;
 
 function setDatabaseView(nextView) {
 	// Keep database viewer state assignment outside async loader internals.
@@ -788,31 +788,105 @@ function renderSanitizeSummary(report) {
 	});
 }
 
-function renderSanitizeModal(report) {
+function createModalSummary(text) {
+	// Modal summaries use the same spacing and text color no matter which
+	// feature opened the shared popup.
+	const summary = document.createElement("div");
+	summary.className = "modal-summary";
+	summary.textContent = text || "";
+	return summary;
+}
+
+function createModalDetails(details) {
+	// Confirmation prompts show their supporting notes as one consistent list.
+	const list = document.createElement("ul");
+	list.className = "modal-details";
+
+	for (const detail of details) {
+		const item = document.createElement("li");
+		item.textContent = detail;
+		list.append(item);
+	}
+
+	return list;
+}
+
+function createModalButton({ action, disabled = false, id, label, variant = "secondary" }) {
+	// The shared modal footer is rebuilt each time the popup opens. Buttons use
+	// the same data-action event routing as the rest of HachiGen.
+	const button = document.createElement("button");
+	button.className = `button ${variant}`;
+	button.disabled = disabled;
+	button.textContent = label;
+	button.type = "button";
+
+	if (action) {
+		button.dataset.action = action;
+	}
+
+	if (id) {
+		button.id = id;
+	}
+
+	return button;
+}
+
+function showSharedModal({ actions = [], content = [], meta, title }) {
+	// This is the one modal frame used for both review popups and confirmations.
+	// Callers provide the title, body nodes, and footer buttons they need.
+	const modal = $("#sharedModal");
+	const body = $("#sharedModalBody");
+	const footer = $("#sharedModalActions");
+
+	if (!modal || !body || !footer) {
+		return false;
+	}
+
+	setText("#sharedModalTitle", title || "Review");
+	setText("#sharedModalMeta", meta || "Review loaded");
+
+	body.replaceChildren(...content.filter(Boolean));
+	footer.replaceChildren(...actions.map(createModalButton));
+	modal.hidden = false;
+	return true;
+}
+
+function closeSharedModal() {
+	// Close the one shared popup and clear its dynamic body/footer content.
+	const modal = $("#sharedModal");
+	const body = $("#sharedModalBody");
+	const footer = $("#sharedModalActions");
+
+	if (modal) {
+		modal.hidden = true;
+	}
+
+	if (body) {
+		body.replaceChildren();
+	}
+
+	if (footer) {
+		footer.replaceChildren();
+	}
+}
+
+function renderSanitizeModal(report, selectedActionIds = null) {
 	// Build the review popup. Cleanable findings get checkboxes; schema and
 	// review-only findings are shown for awareness but cannot be auto-cleaned.
 	// Nothing is changed by opening this modal. Cleanup only starts when the
 	// user clicks Clean Selected and confirms the themed HachiGen prompt.
 	sanitizeReport = report;
 
-	const modal = $("#sanitizeModal");
-	const findingsContainer = $("#sanitizeFindings");
 	const findings = [...(report?.findings || [])].sort((a, b) => severityRank(a.severity) - severityRank(b.severity));
 	const cleanableCount = findings.filter(finding => finding.cleanable).length;
-
-	if (!modal || !findingsContainer) {
-		return;
-	}
-
-	setText("#sanitizeModalMeta", `Reviewed ${formatDateTime(report?.reviewedAt)}`);
-	setText(
-		"#sanitizeModalSummary",
+	const selectedActions = selectedActionIds ? new Set(selectedActionIds) : null;
+	const summary = createModalSummary(
 		findings.length ?
 			`${pluralize(findings.length, "finding")} found. ${pluralize(cleanableCount, "cleanable group")} selected by default.` :
 			"No database issues found.",
 	);
-
-	findingsContainer.innerHTML = "";
+	const findingsContainer = document.createElement("div");
+	findingsContainer.className = "sanitize-findings";
 
 	if (!findings.length) {
 		const empty = document.createElement("div");
@@ -829,7 +903,7 @@ function renderSanitizeModal(report) {
 				// already limited them to conservative, database-only fixes.
 				const checkbox = document.createElement("input");
 				checkbox.type = "checkbox";
-				checkbox.checked = true;
+				checkbox.checked = selectedActions ? selectedActions.has(finding.id) : true;
 				checkbox.value = finding.id;
 				checkbox.dataset.cleanAction = finding.id;
 				item.append(checkbox);
@@ -857,18 +931,27 @@ function renderSanitizeModal(report) {
 		}
 	}
 
-	setDisabled("#applySanitizeButton", cleanableCount === 0);
 	renderSanitizeSummary(report);
-	modal.hidden = false;
+	showSharedModal({
+		actions: [
+			{ action: "sanitize-close", label: "Cancel", variant: "secondary" },
+			{
+				action: "apply-sanitize",
+				disabled: cleanableCount === 0,
+				id: "applySanitizeButton",
+				label: "Clean Selected",
+				variant: "warning",
+			},
+		],
+		content: [summary, findingsContainer],
+		meta: `Reviewed ${formatDateTime(report?.reviewedAt)}`,
+		title: "Database sanitation review",
+	});
 }
 
 function hideSanitizeModal() {
 	// Close the review popup without discarding the summary shown on the tab.
-	const modal = $("#sanitizeModal");
-
-	if (modal) {
-		modal.hidden = true;
-	}
+	closeSharedModal();
 }
 
 function selectedSanitizeActionIds() {
@@ -942,13 +1025,10 @@ function confirmDatabaseMigration(force) {
 function closeConfirmModal(confirmed) {
 	// Resolve the promise created by showConfirmModal(). This keeps each caller
 	// free to decide what happens after the themed confirmation closes.
-	const modal = $("#confirmModal");
-	const resolve = confirmModalResolve;
-	confirmModalResolve = null;
+	const resolve = confirmationResolve;
+	confirmationResolve = null;
 
-	if (modal) {
-		modal.hidden = true;
-	}
+	closeSharedModal();
 
 	if (resolve) {
 		resolve(confirmed);
@@ -958,34 +1038,21 @@ function closeConfirmModal(confirmed) {
 function showConfirmModal({ confirmText = "Confirm", details = [], meta, summary, title, variant = "warning" }) {
 	// Shared themed confirmation modal for every yes/no action. File/folder
 	// pickers still remain native Windows dialogs.
-	const modal = $("#confirmModal");
-	const button = $("#confirmModalButton");
-	const detailsList = $("#confirmModalDetails");
-
 	return new Promise(resolve => {
-		confirmModalResolve = resolve;
+		confirmationResolve = resolve;
+		const opened = showSharedModal({
+			actions: [
+				{ action: "confirm-cancel", label: "Cancel", variant: "secondary" },
+				{ action: "confirm-accept", label: confirmText, variant },
+			],
+			content: [createModalSummary(summary), createModalDetails(details)],
+			meta: meta || "Review the action before continuing",
+			title: title || "Confirm action",
+		});
 
-		setText("#confirmModalTitle", title || "Confirm action");
-		setText("#confirmModalMeta", meta || "Review the action before continuing");
-		setText("#confirmModalSummary", summary || "");
-
-		if (button) {
-			button.textContent = confirmText;
-			button.className = `button ${variant}`;
-		}
-
-		if (detailsList) {
-			detailsList.innerHTML = "";
-
-			for (const detail of details) {
-				const item = document.createElement("li");
-				item.textContent = detail;
-				detailsList.append(item);
-			}
-		}
-
-		if (modal) {
-			modal.hidden = false;
+		if (!opened) {
+			confirmationResolve = null;
+			resolve(false);
 		}
 	});
 }
@@ -1322,6 +1389,12 @@ function handleAction(event) {
 		return;
 	}
 
+	if (action === "show-setup") {
+		// Dashboard shortcut to the Setup tab.
+		showView("setup");
+		return;
+	}
+
 	if (action === "show-updates") {
 		// Dashboard shortcut to the Updates tab.
 		showView("updates");
@@ -1484,6 +1557,9 @@ function handleAction(event) {
 			variant: "warning",
 		}).then(confirmed => {
 			if (!confirmed) {
+				// The shared modal temporarily swaps the review for this final
+				// confirmation, so restore the review when the user backs out.
+				renderSanitizeModal(sanitizeReport, actionIds);
 				toast("Database sanitation canceled.");
 				return;
 			}

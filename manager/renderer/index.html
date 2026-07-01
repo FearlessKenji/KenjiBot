@@ -68,7 +68,7 @@
 							<div class="card-detail" id="botDetail">PM2 status</div>
 						</article>
 
-						<article class="status-card">
+						<article class="status-card status-card-action" data-action="show-setup">
 							<div class="card-label">Install</div>
 							<div class="status-value">
 								<span class="dot" id="installDot"></span>
@@ -77,7 +77,7 @@
 							<div class="card-detail" id="installDetail">Project files</div>
 						</article>
 
-						<article class="status-card">
+						<article class="status-card status-card-action" data-action="show-updates">
 							<div class="card-label">Updates</div>
 							<div class="status-value">
 								<span class="dot" id="updateDot"></span>
@@ -377,39 +377,16 @@
 			</main>
 		</div>
 
-		<div class="modal-backdrop" id="sanitizeModal" hidden>
-			<div class="modal" role="dialog" aria-modal="true" aria-labelledby="sanitizeModalTitle">
+		<div class="modal-backdrop" id="sharedModal" hidden>
+			<div class="modal" role="dialog" aria-modal="true" aria-labelledby="sharedModalTitle">
 				<div class="modal-header">
 					<div>
-						<h2 id="sanitizeModalTitle">Database sanitation review</h2>
-						<div class="panel-meta" id="sanitizeModalMeta">Review loaded</div>
+						<h2 id="sharedModalTitle">Review</h2>
+						<div class="panel-meta" id="sharedModalMeta">Review loaded</div>
 					</div>
-					<button class="button secondary compact" type="button" data-action="sanitize-close">Close</button>
 				</div>
-				<div class="sanitize-summary" id="sanitizeModalSummary"></div>
-				<div class="sanitize-findings" id="sanitizeFindings"></div>
-				<div class="modal-actions">
-					<button class="button secondary" type="button" data-action="sanitize-close">Cancel</button>
-					<button class="button warning" type="button" data-action="apply-sanitize" id="applySanitizeButton" disabled>Clean Selected</button>
-				</div>
-			</div>
-		</div>
-
-		<div class="modal-backdrop" id="confirmModal" hidden>
-			<div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
-				<div class="modal-header">
-					<div>
-						<h2 id="confirmModalTitle">Confirm action</h2>
-						<div class="panel-meta" id="confirmModalMeta">Review the action before continuing</div>
-					</div>
-					<button class="button secondary compact" type="button" data-action="confirm-cancel">Close</button>
-				</div>
-				<div class="confirm-summary" id="confirmModalSummary"></div>
-				<ul class="confirm-details" id="confirmModalDetails"></ul>
-				<div class="modal-actions">
-					<button class="button secondary" type="button" data-action="confirm-cancel">Cancel</button>
-					<button class="button warning" type="button" data-action="confirm-accept" id="confirmModalButton">Confirm</button>
-				</div>
+				<div class="modal-body" id="sharedModalBody"></div>
+				<div class="modal-actions" id="sharedModalActions"></div>
 			</div>
 		</div>
 
